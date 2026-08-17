@@ -1,36 +1,197 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Gestion Inmobiliaria Naranjo
 
-## Getting Started
+Aplicación web interna para la gestión de inmuebles, seguimiento y tareas de la
+inmobiliaria Naranjo Ltda. Reemplaza progresivamente el manejo en Excel por una
+plataforma centralizada con trazabilidad de acciones.
 
-First, run the development server:
+## Stack
+
+- **Next.js 16** (App Router, RSC) + **React 19** + **TypeScript** estricto
+- **Tailwind CSS v4** + **shadcn/ui** (base sobre `@base-ui/react`)
+- **Prisma 7** + **PostgreSQL** (Docker) con driver adapter `pg`
+- **Auth.js v5** (NextAuth) — credenciales, JWT, roles `ADMIN` / `ASESOR`
+- **Zod** + **React Hook Form** para validación cliente/servidor
+- **Vitest** para pruebas unitarias
+
+## Estructura
+
+```
+.
+├── docker-compose.yml          # PostgreSQL listo para usar
+├── docs/                       # Documentación funcional y técnica
+│   ├── REQUIREMENTS.md
+│   └── STACK.md
+├── prisma/
+│   ├── schema.prisma           # Modelos, enums, migraciones aplicadas
+│   └── migrations/             # Migraciones de Prisma
+├── scripts/
+│   ├── seed-admin.ts           # Crea el administrador inicial
+│   ├── seed-inmuebles.ts       # Carga datos de ejemplo en inmuebles
+│   └── import-inmuebles-xlsx.ts # Importa el listado Excel a la BD
+├── tests/                      # Pruebas unitarias (Vitest)
+├── src/
+│   ├── app/                    # Rutas, layouts, server actions, server components
+│   │   ├── actions.ts          # Acción de login
+│   │   ├── login/              # Página pública de login
+│   │   ├── dashboard/          # Resumen, métricas, actividad
+│   │   ├── inmuebles/          # CRUD inmuebles, archivado, notas
+│   │   ├── tareas/             # CRUD tareas, reclamo, liberación
+│   │   ├── administracion/     # Usuarios (admin) y archivados
+│   │   ├── layout.tsx          # Layout raíz, nav, footer, toaster
+│   │   ├── page.tsx            # Página inicial (redirect a /login o /dashboard)
+│   │   └── globals.css         # Tema y Figtree
+│   ├── components/             # Componentes UI
+│   │   ├── ui/                 # shadcn (button, card, dialog, table, …)
+│   │   ├── app-nav.tsx         # Navegación principal
+│   │   ├── login-form.tsx
+│   │   ├── logout-form.tsx
+│   │   ├── actividad-timeline.tsx
+│   │   ├── spinner.tsx         # Spinner estándar
+│   │   ├── skeleton.tsx        # Skeleton base
+│   │   └── skeletons.tsx       # Skeletons específicos (tabla, card, KPI)
+│   ├── lib/                    # Lógica de servidor
+│   │   ├── prisma.ts           # Singleton de Prisma con driver pg
+│   │   ├── dal.ts              # requireAuth, requireAdmin, queries
+│   │   ├── audit.ts            # Registro de actividad en transacciones
+│   │   ├── tarea-utils.ts      # Helpers de tareas (esVencida, etiquetas)
+│   │   └── utils.ts            # cn() de shadcn
+│   ├── auth.ts                 # Configuración de Auth.js
+│   ├── proxy.ts                # Proxy (Next 16) que aplica la lógica de Auth.js
+│   └── types/
+│       └── next-auth.d.ts      # Augmentación de tipos de sesión/JWT
+├── .env.example
+├── vitest.config.ts
+├── next.config.ts
+└── tsconfig.json
+```
+
+## Requisitos previos
+
+- Node.js 20+ y npm 10+
+- PostgreSQL (local o vía Docker)
+- Credenciales de la base de datos
+
+## Arrancar PostgreSQL con Docker
+
+```bash
+docker compose up -d
+```
+
+Levanta PostgreSQL en `localhost:5432` con base `gestor_inmueble` y
+credenciales `postgres`/`postgres`. Persistencia en volumen `gestor_pgdata`.
+
+## Instalación
+
+```bash
+npm install
+cp .env.example .env
+# Editar .env si la base no es la de Docker.
+```
+
+## Variables de entorno
+
+| Variable | Descripción |
+| --- | --- |
+| `DATABASE_URL` | URL de conexión PostgreSQL. |
+| `AUTH_SECRET` | Secreto JWT de Auth.js. Genera uno con `openssl rand -base64 32`. |
+| `ADMIN_USERNAME` / `ADMIN_PASSWORD` / `ADMIN_NOMBRE` | Credenciales del admin inicial (se usan solo en el seed). |
+| `NODE_ENV` | `development` \| `production`. |
+
+## Migraciones
+
+```bash
+npm run prisma:migrate     # Aplica migraciones pendientes (también prisma generate)
+npm run prisma:studio      # UI para inspeccionar la base
+```
+
+## Crear el administrador inicial
+
+```bash
+npm run seed:admin
+```
+
+Lee `ADMIN_USERNAME`/`ADMIN_PASSWORD`/`ADMIN_NOMBRE` del `.env` y crea la fila
+correspondiente en `usuarios` con la contraseña hashed con `bcrypt`.
+
+## Ejecutar la aplicación
+
+### Modo desarrollo
+
+Arrancar hot-reload en `http://localhost:3000`:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Login con las credenciales de `ADMIN_USERNAME` / `ADMIN_PASSWORD`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Útil para iterar sobre UI o lógica de componentes. No optimiza el bundle.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Modo producción
 
-## Learn More
+Genera un build optimizado y lo sirve en el puerto `3000`:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run build       # genera .next/ a partir de .env (aplica NEXT_PUBLIC_*, etc.)
+npm start           # sirve la build de producción
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Útil para validar el comportamiento en un entorno idéntico al de despliegue
+(bundle optimizado, sin fast refresh, con `x-powered-by` de Next).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Para exponerlo en otra IP de tu LAN (p. ej. `http://192.168.1.10:3000`),
+añade `allowedDevOrigins` en `next.config.ts`
 
-## Deploy on Vercel
+### Resumen de scripts
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Script | Uso |
+| --- | --- |
+| `npm run dev` | Servidor de desarrollo con hot-reload. |
+| `npm run build` | Compila la aplicación para producción. |
+| `npm start` | Sirve la build de producción. |
+| `npm run lint` | ESLint. |
+| `npm run typecheck` | TypeScript en modo estricto. |
+| `npm test` / `npm run test:watch` | Pruebas unitarias (Vitest). |
+| `npm run prisma:generate` | Regenera el cliente de Prisma. |
+| `npm run prisma:migrate` | Aplica migraciones pendientes. |
+| `npm run prisma:studio` | Inspeccionar la base. |
+| `npm run seed:admin` | Crea el usuario admin inicial. |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Pruebas
+
+```bash
+npm test           # Una sola pasada
+npm run test:watch # Modo watch
+```
+
+Los tests cubren permisos y acciones críticas (tareas, inmuebles, notas,
+usuarios) usando mocks de Prisma y Auth.js.
+
+## Verificación de calidad
+
+```bash
+npm run typecheck  # TypeScript estricto
+npm run lint       # ESLint
+npm run build      # Build de producción
+```
+
+## Roles y permisos
+
+- **ADMIN**: gestiona usuarios, archiva/restaura inmuebles, interviene en
+  cualquier tarea.
+- **ASESOR**: ve y edita todos los inmuebles activos, ve y crea tareas y notas,
+  reclama/libera/completa solo sus propias tareas.
+
+Ver [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md) y [docs/STACK.md](docs/STACK.md)
+para el detalle funcional y técnico.
+
+## Decisiones de diseño
+
+- **Soft delete**: los inmuebles archivados no se eliminan. Sus tareas y notas
+  existentes se conservan.
+- **Concurrencia al reclamar tareas**: uso de `updateMany` con condición
+  `estado: "SIN_ASIGNAR"` en la misma query para garantizar atomicidad.
+- **Auditoría**: tabla `actividad` con `create` dentro de la transacción de
+  cada operación para garantizar consistencia.
+- **Validación**: Zod en cliente y servidor. Las acciones de servidor revalidan
+  con `requireAuth` / `requireAdmin` desde `src/lib/dal.ts`.

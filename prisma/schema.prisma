@@ -1,0 +1,173 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Usuario {
+  id           String     @id @default(cuid())
+  nombre       String
+  username     String     @unique
+  passwordHash String
+  rol          Rol        @default(ASESOR)
+  estado       Estado     @default(ACTIVO)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  inmueblesCreados    Inmueble[] @relation("InmuebleCreador")
+  inmueblesModificados Inmueble[] @relation("InmuebleModificador")
+  notas               Nota[]
+  tareasCreadas       Tarea[]  @relation("TareaCreador")
+  tareasAsignadas     Tarea[]  @relation("TareaAsignada")
+  actividades         Actividad[]
+
+  @@map("usuarios")
+}
+
+model Inmueble {
+  id         String     @id @default(cuid())
+  noInm      String     @unique
+  barrio     String?
+  ciudad     String?
+  tipoInmueble String?
+  destinacion  Destinacion?
+  direccion    String?
+  docArrendatario String?
+  arrendatario    String?
+  celArre1        String?
+  emailArre       String?
+  docPropietario  String?
+  propietario     String?
+  emailPro        String?
+  celPro1         String?
+  vigenciaContrato String?
+  nomAdmin        String?
+  observaciones   String?
+  estado          InmuebleEstado @default(ACTIVO)
+  createdById     String
+  updatedById     String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  creadoPor       Usuario  @relation("InmuebleCreador", fields: [createdById], references: [id], onDelete: Restrict)
+  modificadoPor   Usuario  @relation("InmuebleModificador", fields: [updatedById], references: [id], onDelete: Restrict)
+  notas           Nota[]
+
+  @@index([ciudad])
+  @@index([barrio])
+  @@index([tipoInmueble])
+  @@index([destinacion])
+  @@index([estado])
+  tareas          Tarea[]
+  actividades     Actividad[]
+  @@map("inmuebles")
+}
+
+model Nota {
+  id         String   @id @default(cuid())
+  contenido  String
+  inmuebleId String
+  authorId   String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  inmueble   Inmueble @relation(fields: [inmuebleId], references: [id], onDelete: Cascade)
+  autor      Usuario  @relation(fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@index([inmuebleId])
+  @@index([authorId])
+  @@map("notas")
+}
+
+model Tarea {
+  id           String   @id @default(cuid())
+  titulo       String
+  descripcion  String?
+  inmuebleId   String?
+  fechaLimite  DateTime?
+  importante   Boolean  @default(false)
+  urgente      Boolean  @default(false)
+  estado       TareaEstado @default(SIN_ASIGNAR)
+  createdById  String
+  assignedToId String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  completedAt  DateTime?
+  creadoPor    Usuario  @relation("TareaCreador", fields: [createdById], references: [id], onDelete: Restrict)
+  asignadaA    Usuario? @relation("TareaAsignada", fields: [assignedToId], references: [id], onDelete: Restrict)
+  inmueble     Inmueble? @relation(fields: [inmuebleId], references: [id], onDelete: SetNull)
+  actividades  Actividad[]
+
+  @@index([estado])
+  @@index([assignedToId])
+  @@index([inmuebleId])
+  @@index([fechaLimite])
+  @@map("tareas")
+}
+
+enum Rol {
+  ADMIN
+  ASESOR
+}
+
+enum Estado {
+  ACTIVO
+  INACTIVO
+}
+
+enum Destinacion {
+  VIVIENDA
+  COMERCIO
+}
+
+enum InmuebleEstado {
+  ACTIVO
+  ARCHIVADO
+}
+
+enum TareaEstado {
+  SIN_ASIGNAR
+  EN_PROGRESO
+  COMPLETADA
+  CANCELADA
+  ARCHIVADA
+}
+
+model Actividad {
+  id          String         @id @default(cuid())
+  tipo        ActividadTipo
+  entidad     EntidadTipo
+  entidadId   String
+  userId      String
+  context     String?
+  inmuebleId  String?
+  tareaId     String?
+  createdAt   DateTime       @default(now())
+  usuario     Usuario        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  inmueble    Inmueble?      @relation(fields: [inmuebleId], references: [id], onDelete: SetNull)
+  tarea       Tarea?         @relation(fields: [tareaId], references: [id], onDelete: SetNull)
+
+  @@index([entidad, entidadId])
+  @@index([inmuebleId])
+  @@index([tareaId])
+  @@index([createdAt])
+  @@map("actividad")
+}
+
+enum ActividadTipo {
+  INMUEBLE_CREADO
+  INMUEBLE_EDITADO
+  INMUEBLE_ARCHIVADO
+  INMUEBLE_RESTAURADO
+  NOTA_CREADA
+  TAREA_CREADA
+  TAREA_RECLAMADA
+  TAREA_LIBERADA
+  TAREA_COMPLETADA
+}
+
+enum EntidadTipo {
+  INMUEBLE
+  NOTA
+  TAREA
+}

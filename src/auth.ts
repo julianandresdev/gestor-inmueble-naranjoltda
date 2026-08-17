@@ -1,0 +1,103 @@
+import "server-only";
+import NextAuth, { type NextAuthConfig } from "next-auth";
+import Credentials from "next-auth/providers/credentials";
+import bcrypt from "bcryptjs";
+import { z } from "zod";
+import { prisma } from "@/lib/prisma";
+import type { Rol, Estado } from "@/generated/prisma/client";
+
+const credentialsSchema = z.object({
+  username: z.string().min(1, "El usuario es obligatorio"),
+  password: z.string().min(1, "La contraseña es obligatoria"),
+});
+
+export const authConfig: NextAuthConfig = {
+  session: { strategy: "jwt" },
+  pages: { signIn: "/login" },
+  trustHost: true,
+  providers: [
+    Credentials({
+      name: "credenciales",
+      credentials: {
+        username: { label: "Usuario", type: "text" },
+        password: { label: "Contraseña", type: "password" },
+      },
+      authorize: async (credentials) => {
+        const parsed = credentialsSchema.safeParse(credentials);
+        if (!parsed.success) return null;
+
+        const { username, password } = parsed.data;
+        const user = await prisma.usuario.findUnique({
+          where: { username },
+          select: {
+            id: true,
+            nombre: true,
+            username: true,
+            passwordHash: true,
+            rol: true,
+            estado: true,
+          },
+        });
+
+        if (!user) return null;
+        if (user.estado !== "ACTIVO" satisfies Estado) return null;
+
+        const valid = await bcrypt.compare(password, user.passwordHash);
+        if (!valid) return null;
+
+        return {
+          id: user.id,
+          name: user.nombre,
+          email: user.username,
+          role: user.rol as Rol,
+        };
+      },
+    }),
+  ],
+  callbacks: {
+    jwt: ({ token, user }) => {
+      if (user) {
+        token.id = user.id as string;
+        token.role = (user as { role: Rol }).role;
+      }
+      return token;
+    },
+    session: ({ session, token }) => {
+      if (token) {
+        session.user = {
+          ...session.user,
+          id: token.id as string,
+          role: token.role as Rol,
+          name: token.name as string,
+          username: token.email as string,
+        };
+      }
+      return session;
+    },
+    authorized: ({ auth, request }) => {
+      const path = request.nextUrl.pathname;
+      const isLoggedIn = !!auth?.user;
+
+      if (path === "/login") {
+        if (isLoggedIn) return Response.redirect(new URL("/dashboard", request.url));
+        return true;
+      }
+
+      if (!isLoggedIn) {
+        return Response.redirect(new URL("/login", request.url));
+      }
+
+      if (path.startsWith("/administracion") && auth?.user?.role !== "ADMIN") {
+        return Response.redirect(new URL("/dashboard", request.url));
+      }
+
+      if (path === "/inicio") {
+        return Response.redirect(new URL("/dashboard", request.url));
+      }
+
+      return true;
+    },
+  },
+};
+
+export const { auth, signIn, signOut, handlers } = NextAuth(authConfig);
