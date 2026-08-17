@@ -50,7 +50,7 @@ function normalizeNoInm(v: unknown): string | null {
 }
 
 async function main() {
-  const wb = XLSX.readFile("docs/listado llamadas.xlsx");
+  const wb = XLSX.readFile("docs/listado_llamadas.xlsx");
   const ws = wb.Sheets[wb.SheetNames[0]];
   const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, {
     defval: null,
@@ -81,11 +81,11 @@ async function main() {
   });
 
   const admin = await prisma.usuario.findFirst({
-    where: { username: "alirio" },
+    where: { username: "admin" },
     select: { id: true },
   });
   if (!admin) {
-    throw new Error("Alirio no encontrado. Ejecuta primero npm run seed:admin");
+    throw new Error("admin no encontrado. Ejecuta primero npm run seed:admin");
   }
 
   let created = 0;
