@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
 import { Figtree } from "next/font/google";
 import Image from "next/image";
@@ -39,6 +40,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           </div>
         </footer>
         <Toaster richColors position="top-right" />
+        <Analytics />
       </body>
     </html>
   );
