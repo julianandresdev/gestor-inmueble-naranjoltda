@@ -67,7 +67,7 @@ plataforma centralizada con trazabilidad de acciones.
 
 ## Requisitos previos
 
-- Node.js 20+ y npm 10+
+- Node.js 20.19+, 22.12+ o 24.x y pnpm 10+
 - PostgreSQL (local o vía Docker)
 - Credenciales de la base de datos
 
@@ -83,7 +83,7 @@ credenciales `postgres`/`postgres`. Persistencia en volumen `gestor_pgdata`.
 ## Instalación
 
 ```bash
-npm install
+pnpm install
 cp .env.example .env
 # Editar .env si la base no es la de Docker.
 ```
@@ -100,14 +100,14 @@ cp .env.example .env
 ## Migraciones
 
 ```bash
-npm run prisma:migrate     # Aplica migraciones pendientes (también prisma generate)
-npm run prisma:studio      # UI para inspeccionar la base
+pnpm prisma:migrate     # Aplica migraciones pendientes (también prisma generate)
+pnpm prisma:studio      # UI para inspeccionar la base
 ```
 
 ## Crear el administrador inicial
 
 ```bash
-npm run seed:admin
+pnpm seed:admin
 ```
 
 Lee `ADMIN_USERNAME`/`ADMIN_PASSWORD`/`ADMIN_NOMBRE` del `.env` y crea la fila
@@ -120,7 +120,7 @@ correspondiente en `usuarios` con la contraseña hashed con `bcrypt`.
 Arrancar hot-reload en `http://localhost:3000`:
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 Login con las credenciales de `ADMIN_USERNAME` / `ADMIN_PASSWORD`.
@@ -132,8 +132,8 @@ Login con las credenciales de `ADMIN_USERNAME` / `ADMIN_PASSWORD`.
 Genera un build optimizado y lo sirve en el puerto `3000`:
 
 ```bash
-npm run build       # genera .next/ a partir de .env (aplica NEXT_PUBLIC_*, etc.)
-npm start           # sirve la build de producción
+pnpm build       # genera .next/ a partir de .env (aplica NEXT_PUBLIC_*, etc.)
+pnpm start       # sirve la build de producción
 ```
 
 Útil para validar el comportamiento en un entorno idéntico al de despliegue
@@ -146,22 +146,24 @@ añade `allowedDevOrigins` en `next.config.ts`
 
 | Script | Uso |
 | --- | --- |
-| `npm run dev` | Servidor de desarrollo con hot-reload. |
-| `npm run build` | Compila la aplicación para producción. |
-| `npm start` | Sirve la build de producción. |
-| `npm run lint` | ESLint. |
-| `npm run typecheck` | TypeScript en modo estricto. |
-| `npm test` / `npm run test:watch` | Pruebas unitarias (Vitest). |
-| `npm run prisma:generate` | Regenera el cliente de Prisma. |
-| `npm run prisma:migrate` | Aplica migraciones pendientes. |
-| `npm run prisma:studio` | Inspeccionar la base. |
-| `npm run seed:admin` | Crea el usuario admin inicial. |
+| `pnpm dev` | Servidor de desarrollo con hot-reload. |
+| `pnpm build` | Compila la aplicación para producción. |
+| `pnpm start` | Sirve la build de producción. |
+| `pnpm lint` | ESLint. |
+| `pnpm typecheck` | TypeScript en modo estricto. |
+| `pnpm test` / `pnpm test:watch` | Pruebas unitarias (Vitest). |
+| `pnpm prisma:generate` | Regenera el cliente de Prisma. |
+| `pnpm prisma:migrate` | Aplica migraciones pendientes. |
+| `pnpm prisma:studio` | Inspeccionar la base. |
+| `pnpm seed:admin` | Crea el usuario admin inicial. |
+| `pnpm seed:asesor` | Crea el usuario asesor de desarrollo. |
+| `pnpm seed:inmuebles` | Carga inmuebles de prueba. |
 
 ## Pruebas
 
 ```bash
-npm test           # Una sola pasada
-npm run test:watch # Modo watch
+pnpm test           # Una sola pasada
+pnpm test:watch # Modo watch
 ```
 
 Los tests cubren permisos y acciones críticas (tareas, inmuebles, notas,
@@ -170,9 +172,9 @@ usuarios) usando mocks de Prisma y Auth.js.
 ## Verificación de calidad
 
 ```bash
-npm run typecheck  # TypeScript estricto
-npm run lint       # ESLint
-npm run build      # Build de producción
+pnpm typecheck  # TypeScript estricto
+pnpm lint       # ESLint
+pnpm build      # Build de producción
 ```
 
 ## Roles y permisos
