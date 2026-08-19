@@ -85,7 +85,7 @@ async function main() {
     select: { id: true },
   });
   if (!admin) {
-    throw new Error("admin no encontrado. Ejecuta primero npm run seed:admin");
+    throw new Error("admin no encontrado. Ejecuta primero pnpm seed:admin");
   }
 
   let created = 0;
