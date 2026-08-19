@@ -1,4 +1,5 @@
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import type { Metadata } from "next";
 import { Figtree } from "next/font/google";
 import Image from "next/image";
@@ -41,6 +42,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         </footer>
         <Toaster richColors position="top-right" />
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
