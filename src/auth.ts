@@ -1,5 +1,5 @@
 import "server-only";
-import NextAuth, { type NextAuthConfig } from "next-auth";
+import NextAuth, { AuthError, type NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
@@ -15,6 +15,15 @@ export const authConfig: NextAuthConfig = {
   session: { strategy: "jwt" },
   pages: { signIn: "/login" },
   trustHost: true,
+  logger: {
+    error: (error) => {
+      if (error instanceof AuthError && error.type === "CredentialsSignin") {
+        return;
+      }
+
+      console.error("[auth][error]", error);
+    },
+  },
   providers: [
     Credentials({
       name: "credenciales",
