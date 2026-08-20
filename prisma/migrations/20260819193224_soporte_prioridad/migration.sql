@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "ActividadTipo" ADD VALUE 'SOPORTE_PRIORIDAD';

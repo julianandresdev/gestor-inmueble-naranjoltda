@@ -123,6 +123,19 @@ export default async function DashboardPage() {
             </span>
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Soporte · Abiertos</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <span className="text-3xl font-semibold">
+              {data.kpis.soporteAbiertos}
+            </span>
+            <p className="mt-1 text-xs text-muted-foreground">
+              En progreso: {data.kpis.soporteEnProgreso}
+            </p>
+          </CardContent>
+        </Card>
       </section>
 
       <section>

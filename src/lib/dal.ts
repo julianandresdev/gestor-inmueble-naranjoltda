@@ -3,11 +3,14 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import type { ActividadItem } from "@/lib/audit";
 import type {
   Prisma,
   Rol,
   Destinacion,
   TareaEstado,
+  TicketEstado,
+  TicketPrioridad,
 } from "@/generated/prisma/client";
 
 export type SafeUser = {
@@ -388,6 +391,8 @@ export type DashboardData = {
     tareasEnProgreso: number;
     tareasVencidas: number;
     tareasUrgentesPendientes: number;
+    soporteAbiertos: number;
+    soporteEnProgreso: number;
   };
   tareasPrioritarias: DashboardTareaItem[];
 };
@@ -453,6 +458,8 @@ export async function getDashboardData(): Promise<DashboardData> {
   }
   const tareasActivas = Object.values(conteo).reduce((a, b) => a + b, 0);
 
+  const soporteKpis = await getSoporteKpis();
+
   return {
     kpis: {
       inmueblesActivos,
@@ -461,7 +468,193 @@ export async function getDashboardData(): Promise<DashboardData> {
       tareasEnProgreso: conteo["EN_PROGRESO"] ?? 0,
       tareasVencidas: vencidas,
       tareasUrgentesPendientes: urgentesPendientes,
+      soporteAbiertos: soporteKpis.soporteAbiertos,
+      soporteEnProgreso: soporteKpis.soporteEnProgreso,
     },
     tareasPrioritarias: prioridades,
+  };
+}
+
+export type SoporteTicketListItem = {
+  id: string;
+  titulo: string;
+  estado: TicketEstado;
+  prioridad: TicketPrioridad;
+  createdAt: Date;
+  updatedAt: Date;
+  creadoPor: { id: string; nombre: string };
+  mensajesCount: number;
+};
+
+export type SoporteTicketDetalle = {
+  id: string;
+  titulo: string;
+  descripcion: string;
+  estado: TicketEstado;
+  prioridad: TicketPrioridad;
+  createdAt: Date;
+  updatedAt: Date;
+  resolvedAt: Date | null;
+  creadoPor: { id: string; nombre: string };
+  cerradoPor: { id: string; nombre: string } | null;
+};
+
+export type SoporteMensajeItem = {
+  id: string;
+  contenido: string;
+  createdAt: Date;
+  autor: { id: string; nombre: string };
+};
+
+export type SoporteFiltros = {
+  q?: string;
+  estado?: TicketEstado;
+  prioridad?: TicketPrioridad;
+};
+
+function buildSoporteWhere(
+  userId: string,
+  isAdmin: boolean,
+  filtros: SoporteFiltros
+): Prisma.SoporteTicketWhereInput {
+  const where: Prisma.SoporteTicketWhereInput = isAdmin
+    ? {}
+    : { createdById: userId };
+
+  if (filtros.q && filtros.q.trim()) {
+    const t = filtros.q.trim();
+    where.OR = [
+      { titulo: { contains: t, mode: "insensitive" } },
+      { descripcion: { contains: t, mode: "insensitive" } },
+    ];
+  }
+  if (filtros.estado) where.estado = filtros.estado;
+  if (filtros.prioridad) where.prioridad = filtros.prioridad;
+
+  return where;
+}
+
+export async function listSoporteTickets(
+  filtros: SoporteFiltros = {}
+): Promise<SoporteTicketListItem[]> {
+  const user = await requireAuth();
+  const isAdmin = user.role === "ADMIN";
+
+  const tickets = await prisma.soporteTicket.findMany({
+    where: buildSoporteWhere(user.id, isAdmin, filtros),
+    orderBy: [{ updatedAt: "desc" }],
+    select: {
+      id: true,
+      titulo: true,
+      estado: true,
+      prioridad: true,
+      createdAt: true,
+      updatedAt: true,
+      creadoPor: { select: { id: true, nombre: true } },
+      _count: { select: { mensajes: true } },
+    },
+  });
+
+  return tickets.map((t) => ({
+    id: t.id,
+    titulo: t.titulo,
+    estado: t.estado,
+    prioridad: t.prioridad,
+    createdAt: t.createdAt,
+    updatedAt: t.updatedAt,
+    creadoPor: t.creadoPor,
+    mensajesCount: t._count.mensajes,
+  }));
+}
+
+export async function getSoporteTicket(
+  id: string
+): Promise<SoporteTicketDetalle | null> {
+  const user = await requireAuth();
+  const isAdmin = user.role === "ADMIN";
+
+  const ticket = await prisma.soporteTicket.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      titulo: true,
+      descripcion: true,
+      estado: true,
+      prioridad: true,
+      createdAt: true,
+      updatedAt: true,
+      resolvedAt: true,
+      creadoPor: { select: { id: true, nombre: true } },
+      cerradoPor: { select: { id: true, nombre: true } },
+    },
+  });
+  if (!ticket) return null;
+  if (!isAdmin && ticket.creadoPor.id !== user.id) return null;
+  return ticket;
+}
+
+export async function listSoporteMensajes(
+  ticketId: string
+): Promise<SoporteMensajeItem[]> {
+  await requireAuth();
+  return prisma.soporteMensaje.findMany({
+    where: { ticketId },
+    orderBy: [{ createdAt: "asc" }],
+    select: {
+      id: true,
+      contenido: true,
+      createdAt: true,
+      autor: { select: { id: true, nombre: true } },
+    },
+  });
+}
+
+export async function listarActividadSoporte(
+  ticketId: string
+): Promise<ActividadItem[]> {
+  const rows = await prisma.actividad.findMany({
+    where: { soporteTicketId: ticketId },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      tipo: true,
+      context: true,
+      createdAt: true,
+      usuario: { select: { nombre: true } },
+    },
+  });
+  return rows.map((r) => ({
+    id: r.id,
+    tipo: r.tipo,
+    user: r.usuario.nombre,
+    context: r.context,
+    createdAt: r.createdAt,
+  }));
+}
+
+export type SoporteKpis = {
+  soporteAbiertos: number;
+  soporteEnProgreso: number;
+};
+
+export async function getSoporteKpis(): Promise<SoporteKpis> {
+  const user = await requireAuth();
+  const isAdmin = user.role === "ADMIN";
+  const baseWhere: Prisma.SoporteTicketWhereInput = isAdmin
+    ? {}
+    : { createdById: user.id };
+
+  const [abiertos, enProgreso] = await Promise.all([
+    prisma.soporteTicket.count({
+      where: { ...baseWhere, estado: "ABIERTO" },
+    }),
+    prisma.soporteTicket.count({
+      where: { ...baseWhere, estado: "EN_PROGRESO" },
+    }),
+  ]);
+
+  return {
+    soporteAbiertos: abiertos,
+    soporteEnProgreso: enProgreso,
   };
 }

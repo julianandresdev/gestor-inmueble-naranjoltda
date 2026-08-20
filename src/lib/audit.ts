@@ -66,18 +66,32 @@ export const ACTIVIDAD_LABELS: Record<string, string> = {
   TAREA_RECLAMADA: "Tarea reclamada",
   TAREA_LIBERADA: "Tarea liberada",
   TAREA_COMPLETADA: "Tarea completada",
+  SOPORTE_CREADO: "Ticket creado",
+  SOPORTE_EN_PROGRESO: "Ticket en progreso",
+  SOPORTE_RESUELTO: "Ticket resuelto",
+  SOPORTE_CERRADO: "Ticket cerrado",
+  SOPORTE_CANCELADO: "Ticket cancelado",
+  SOPORTE_COMENTADO: "Ticket comentado",
+  SOPORTE_PRIORIDAD: "Prioridad cambiada",
 };
 
 export const ACTIVIDAD_PREFIX: Record<string, string> = {
   INMUEBLE_CREADO: "+",
   INMUEBLE_EDITADO: "✎",
   INMUEBLE_ARCHIVADO: "■",
-  INMUEBLE_RESTAURADO: "↻",
+  INMUEBLE_RESTAURADO: "�",
   NOTA_CREADA: "✎",
   TAREA_CREADA: "+",
   TAREA_RECLAMADA: "▶",
   TAREA_LIBERADA: "⏸",
   TAREA_COMPLETADA: "✓",
+  SOPORTE_CREADO: "🎟",
+  SOPORTE_EN_PROGRESO: "⏳",
+  SOPORTE_RESUELTO: "✓",
+  SOPORTE_CERRADO: "■",
+  SOPORTE_CANCELADO: "✕",
+  SOPORTE_COMENTADO: "💬",
+  SOPORTE_PRIORIDAD: "⚑",
 };
 
 type RegistrarArgs = {
@@ -91,13 +105,21 @@ type RegistrarArgs = {
     | "TAREA_CREADA"
     | "TAREA_RECLAMADA"
     | "TAREA_LIBERADA"
-    | "TAREA_COMPLETADA";
-  entidad: "INMUEBLE" | "NOTA" | "TAREA";
+    | "TAREA_COMPLETADA"
+    | "SOPORTE_CREADO"
+    | "SOPORTE_EN_PROGRESO"
+    | "SOPORTE_RESUELTO"
+    | "SOPORTE_CERRADO"
+    | "SOPORTE_CANCELADO"
+    | "SOPORTE_COMENTADO"
+    | "SOPORTE_PRIORIDAD";
+  entidad: "INMUEBLE" | "NOTA" | "TAREA" | "SOPORTE";
   entidadId: string;
   userId: string;
   context?: string | null;
   inmuebleId?: string | null;
   tareaId?: string | null;
+  soporteTicketId?: string | null;
 };
 
 export async function registrarActividad(args: RegistrarArgs): Promise<void> {
@@ -110,6 +132,7 @@ export async function registrarActividad(args: RegistrarArgs): Promise<void> {
       context: args.context ?? null,
       inmuebleId: args.inmuebleId ?? null,
       tareaId: args.tareaId ?? null,
+      soporteTicketId: args.soporteTicketId ?? null,
     },
   });
 }
@@ -140,6 +163,7 @@ export async function listarActividadReciente(
       usuario: { select: { nombre: true } },
       tarea: { select: { id: true, titulo: true } },
       inmueble: { select: { id: true, noInm: true } },
+      soporteTicket: { select: { id: true, titulo: true } },
     },
   });
 
@@ -151,6 +175,8 @@ export async function listarActividadReciente(
       href = `/tareas/${r.tarea.id}`;
     } else if (r.entidad === "NOTA" && r.inmueble) {
       href = `/inmuebles/${r.inmueble.id}`;
+    } else if (r.entidad === "SOPORTE" && r.soporteTicket) {
+      href = `/soporte/${r.soporteTicket.id}`;
     }
     return {
       id: r.id,

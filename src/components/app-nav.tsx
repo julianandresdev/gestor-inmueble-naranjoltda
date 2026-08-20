@@ -35,6 +35,12 @@ export async function AppNav() {
             >
               Tareas
             </Link>
+            <Link
+              href="/soporte"
+              className="rounded px-2 py-1 hover:bg-muted"
+            >
+              Soporte
+            </Link>
             {isAdmin && (
               <Link
                 href="/administracion/archivados"

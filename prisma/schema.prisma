@@ -21,7 +21,10 @@ model Usuario {
   notas               Nota[]
   tareasCreadas       Tarea[]  @relation("TareaCreador")
   tareasAsignadas     Tarea[]  @relation("TareaAsignada")
-  actividades         Actividad[]
+  soporteTicketsCreados   SoporteTicket[] @relation("SoporteTicketCreador")
+  soporteTicketsCerrados  SoporteTicket[] @relation("SoporteTicketCerrador")
+  soporteMensajes         SoporteMensaje[]
+  actividades             Actividad[]
 
   @@map("usuarios")
 }
@@ -142,16 +145,69 @@ model Actividad {
   context     String?
   inmuebleId  String?
   tareaId     String?
+  soporteTicketId String?
   createdAt   DateTime       @default(now())
   usuario     Usuario        @relation(fields: [userId], references: [id], onDelete: Restrict)
   inmueble    Inmueble?      @relation(fields: [inmuebleId], references: [id], onDelete: SetNull)
   tarea       Tarea?         @relation(fields: [tareaId], references: [id], onDelete: SetNull)
+  soporteTicket SoporteTicket? @relation(fields: [soporteTicketId], references: [id], onDelete: SetNull)
 
   @@index([entidad, entidadId])
   @@index([inmuebleId])
   @@index([tareaId])
+  @@index([soporteTicketId])
   @@index([createdAt])
   @@map("actividad")
+}
+
+model SoporteTicket {
+  id           String           @id @default(cuid())
+  titulo       String
+  descripcion  String
+  prioridad    TicketPrioridad  @default(NORMAL)
+  estado       TicketEstado     @default(ABIERTO)
+  createdById  String
+  resolvedAt   DateTime?
+  cerradoPorId String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  creadoPor    Usuario          @relation("SoporteTicketCreador",  fields: [createdById],  references: [id], onDelete: Restrict)
+  cerradoPor   Usuario?         @relation("SoporteTicketCerrador", fields: [cerradoPorId], references: [id], onDelete: SetNull)
+  mensajes     SoporteMensaje[]
+  actividades  Actividad[]
+
+  @@index([estado])
+  @@index([createdById])
+  @@index([createdAt])
+  @@map("soporte_tickets")
+}
+
+model SoporteMensaje {
+  id        String        @id @default(cuid())
+  ticketId  String
+  authorId  String
+  contenido String
+  createdAt DateTime      @default(now())
+  ticket    SoporteTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  autor     Usuario       @relation(fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@index([ticketId])
+  @@map("soporte_mensajes")
+}
+
+enum TicketPrioridad {
+  BAJA
+  NORMAL
+  ALTA
+  URGENTE
+}
+
+enum TicketEstado {
+  ABIERTO
+  EN_PROGRESO
+  RESUELTO
+  CERRADO
+  CANCELADO
 }
 
 enum ActividadTipo {
@@ -164,10 +220,18 @@ enum ActividadTipo {
   TAREA_RECLAMADA
   TAREA_LIBERADA
   TAREA_COMPLETADA
+  SOPORTE_CREADO
+  SOPORTE_EN_PROGRESO
+  SOPORTE_RESUELTO
+  SOPORTE_CERRADO
+  SOPORTE_CANCELADO
+  SOPORTE_COMENTADO
+  SOPORTE_PRIORIDAD
 }
 
 enum EntidadTipo {
   INMUEBLE
   NOTA
   TAREA
+  SOPORTE
 }
