@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/dal";
+import { requireAuth, requireAdmin } from "@/lib/dal";
 import { registrarActividad, withTransaction } from "@/lib/audit";
 import { notifyTicket } from "@/lib/telegram";
 import type { TicketAccion } from "@/lib/telegram";
@@ -179,7 +179,7 @@ export async function cambiarEstadoSoporteTicket(
   _prev: SoporteAccionState,
   formData: FormData
 ): Promise<SoporteAccionState> {
-  const user = await requireAuth();
+  const user = await requireAdmin();
 
   const parsed = cambiarEstadoSchema.safeParse({
     id: formData.get("id"),
@@ -196,9 +196,6 @@ export async function cambiarEstadoSoporteTicket(
     select: { id: true, estado: true, createdById: true },
   });
   if (!ticket) return { error: "Ticket no encontrado" };
-
-  const deny = ensureCanModify(ticket, user);
-  if (deny) return { error: deny };
 
   const permitidas = TRANSICIONES_VALIDAS[ticket.estado] ?? [];
   if (!permitidas.includes(nuevoEstado)) {
@@ -291,6 +288,15 @@ export async function agregarMensajeSoporte(
 
   const deny = ensureCanModify(ticket, user);
   if (deny) return { error: deny };
+
+  if (
+    (ticket.estado === "RESUELTO" || ticket.estado === "CERRADO") &&
+    user.role !== "ADMIN"
+  ) {
+    return {
+      error: "Este ticket está cerrado y no admite más mensajes",
+    };
+  }
 
   try {
     await withTransaction(async (tx) => {

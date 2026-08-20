@@ -1,33 +1,36 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { mockRequireAuth, mockNotifyTicket, mockPrisma } = vi.hoisted(() => ({
-  mockRequireAuth: vi.fn(),
-  mockNotifyTicket: vi.fn(),
-  mockPrisma: {
-    soporteTicket: {
-      findUnique: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
-      count: vi.fn(),
-      findMany: vi.fn(),
+const { mockRequireAuth, mockRequireAdmin, mockNotifyTicket, mockPrisma } =
+  vi.hoisted(() => ({
+    mockRequireAuth: vi.fn(),
+    mockRequireAdmin: vi.fn(),
+    mockNotifyTicket: vi.fn(),
+    mockPrisma: {
+      soporteTicket: {
+        findUnique: vi.fn(),
+        create: vi.fn(),
+        update: vi.fn(),
+        count: vi.fn(),
+        findMany: vi.fn(),
+      },
+      soporteMensaje: {
+        create: vi.fn(),
+        findMany: vi.fn(),
+      },
+      usuario: {
+        findUnique: vi.fn(),
+      },
+      $transaction: vi.fn(),
+      actividad: {
+        create: vi.fn(),
+        findMany: vi.fn(),
+      },
     },
-    soporteMensaje: {
-      create: vi.fn(),
-      findMany: vi.fn(),
-    },
-    usuario: {
-      findUnique: vi.fn(),
-    },
-    $transaction: vi.fn(),
-    actividad: {
-      create: vi.fn(),
-      findMany: vi.fn(),
-    },
-  },
-}));
+  }));
 
 vi.mock("@/lib/dal", () => ({
   requireAuth: mockRequireAuth,
+  requireAdmin: mockRequireAdmin,
 }));
 vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }));
 vi.mock("@/lib/telegram", () => ({
@@ -55,6 +58,7 @@ const OTRO = { id: "otro1", name: "Otro", role: "ASESOR" };
 beforeEach(() => {
   vi.clearAllMocks();
   mockRequireAuth.mockResolvedValue(ASESOR);
+  mockRequireAdmin.mockResolvedValue(ADMIN);
   mockNotifyTicket.mockResolvedValue({ ok: true });
   mockPrisma.$transaction.mockImplementation(
     async (fn: (tx: typeof mockPrisma) => Promise<unknown>) => fn(mockPrisma)
@@ -129,7 +133,9 @@ describe("soporte/actions — crearSoporteTicket", () => {
 });
 
 describe("soporte/actions — cambiarEstadoSoporteTicket", () => {
-  it("permite al autor cambiar ABIERTO → EN_PROGRESO", async () => {
+  it("ADMIN puede cambiar ABIERTO → EN_PROGRESO", async () => {
+    mockRequireAuth.mockResolvedValue(ADMIN);
+    mockRequireAdmin.mockResolvedValue(ADMIN);
     mockPrisma.soporteTicket.findUnique.mockResolvedValue({
       id: "t1",
       titulo: "Test",
@@ -151,8 +157,44 @@ describe("soporte/actions — cambiarEstadoSoporteTicket", () => {
     );
   });
 
-  it("permite a ADMIN cambiar estado de un ticket ajeno", async () => {
+  it("rechaza al ASESOR autor del ticket (no es ADMIN)", async () => {
+    mockRequireAdmin.mockImplementation(() => {
+      throw new Error("REDIRECT /inicio");
+    });
+
+    const fd = new FormData();
+    fd.set("id", "t1");
+    fd.set("estado", "EN_PROGRESO");
+
+    await expect(cambiarEstadoSoporteTicket({}, fd)).rejects.toThrow("REDIRECT");
+    expect(mockPrisma.soporteTicket.update).not.toHaveBeenCalled();
+  });
+
+  it("rechaza al ASESOR aunque NO sea autor del ticket", async () => {
+    mockRequireAdmin.mockImplementation(() => {
+      throw new Error("REDIRECT /inicio");
+    });
+
+    mockPrisma.soporteTicket.findUnique.mockResolvedValue({
+      id: "t1",
+      titulo: "Test",
+      estado: "ABIERTO",
+      prioridad: "NORMAL",
+      createdById: OTRO.id,
+      creadoPor: { nombre: "Otro" },
+    });
+
+    const fd = new FormData();
+    fd.set("id", "t1");
+    fd.set("estado", "EN_PROGRESO");
+
+    await expect(cambiarEstadoSoporteTicket({}, fd)).rejects.toThrow("REDIRECT");
+    expect(mockPrisma.soporteTicket.update).not.toHaveBeenCalled();
+  });
+
+  it("ADMIN puede cambiar estado de un ticket ajeno", async () => {
     mockRequireAuth.mockResolvedValue(ADMIN);
+    mockRequireAdmin.mockResolvedValue(ADMIN);
     mockPrisma.soporteTicket.findUnique.mockResolvedValue({
       id: "t1",
       titulo: "Test",
@@ -171,26 +213,9 @@ describe("soporte/actions — cambiarEstadoSoporteTicket", () => {
     expect(res).toEqual({ ok: true });
   });
 
-  it("rechaza a ASESOR sobre ticket ajeno", async () => {
-    mockPrisma.soporteTicket.findUnique.mockResolvedValue({
-      id: "t1",
-      titulo: "Test",
-      estado: "ABIERTO",
-      prioridad: "NORMAL",
-      createdById: OTRO.id,
-      creadoPor: { nombre: "Otro" },
-    });
-
-    const fd = new FormData();
-    fd.set("id", "t1");
-    fd.set("estado", "EN_PROGRESO");
-
-    const res = await cambiarEstadoSoporteTicket({}, fd);
-    expect(res.error).toMatch(/permisos/);
-    expect(mockPrisma.soporteTicket.update).not.toHaveBeenCalled();
-  });
-
   it("rechaza transición inválida", async () => {
+    mockRequireAuth.mockResolvedValue(ADMIN);
+    mockRequireAdmin.mockResolvedValue(ADMIN);
     mockPrisma.soporteTicket.findUnique.mockResolvedValue({
       id: "t1",
       titulo: "Test",
@@ -210,6 +235,8 @@ describe("soporte/actions — cambiarEstadoSoporteTicket", () => {
   });
 
   it("establece resolvedAt al pasar a RESUELTO", async () => {
+    mockRequireAuth.mockResolvedValue(ADMIN);
+    mockRequireAdmin.mockResolvedValue(ADMIN);
     mockPrisma.soporteTicket.findUnique.mockResolvedValue({
       id: "t1",
       titulo: "Test",
@@ -309,6 +336,65 @@ describe("soporte/actions — agregarMensajeSoporte", () => {
 
     const res = await agregarMensajeSoporte({}, fd);
     expect(res.error).toMatch(/vacío/i);
+  });
+
+  it("rechaza ASESOR autor comentar en ticket RESUELTO", async () => {
+    mockPrisma.soporteTicket.findUnique.mockResolvedValue({
+      id: "t1",
+      titulo: "Test",
+      estado: "RESUELTO",
+      prioridad: "NORMAL",
+      createdById: ASESOR.id,
+      creadoPor: { nombre: "Asesor" },
+    });
+
+    const fd = new FormData();
+    fd.set("id", "t1");
+    fd.set("contenido", "Una duda más");
+
+    const res = await agregarMensajeSoporte({}, fd);
+    expect(res.error).toMatch(/cerrado/i);
+    expect(mockPrisma.soporteMensaje.create).not.toHaveBeenCalled();
+  });
+
+  it("rechaza ASESOR autor comentar en ticket CERRADO", async () => {
+    mockPrisma.soporteTicket.findUnique.mockResolvedValue({
+      id: "t1",
+      titulo: "Test",
+      estado: "CERRADO",
+      prioridad: "NORMAL",
+      createdById: ASESOR.id,
+      creadoPor: { nombre: "Asesor" },
+    });
+
+    const fd = new FormData();
+    fd.set("id", "t1");
+    fd.set("contenido", "Más info");
+
+    const res = await agregarMensajeSoporte({}, fd);
+    expect(res.error).toMatch(/cerrado/i);
+    expect(mockPrisma.soporteMensaje.create).not.toHaveBeenCalled();
+  });
+
+  it("permite a ADMIN comentar en ticket RESUELTO", async () => {
+    mockRequireAuth.mockResolvedValue(ADMIN);
+    mockRequireAdmin.mockResolvedValue(ADMIN);
+    mockPrisma.soporteTicket.findUnique.mockResolvedValue({
+      id: "t1",
+      titulo: "Test",
+      estado: "RESUELTO",
+      prioridad: "NORMAL",
+      createdById: ASESOR.id,
+      creadoPor: { nombre: "Asesor" },
+    });
+    mockPrisma.soporteMensaje.create.mockResolvedValue({});
+
+    const fd = new FormData();
+    fd.set("id", "t1");
+    fd.set("contenido", "Nota interna");
+
+    const res = await agregarMensajeSoporte({}, fd);
+    expect(res).toEqual({ ok: true });
   });
 });
 

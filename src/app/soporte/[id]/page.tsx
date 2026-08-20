@@ -158,6 +158,7 @@ export default async function SoporteDetallePage({
             estado={ticket.estado}
             prioridad={ticket.prioridad}
             puedeModificar={puedeModificar}
+            esAdmin={soyAdmin}
           />
         </CardContent>
       </Card>

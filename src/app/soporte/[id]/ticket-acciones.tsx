@@ -41,16 +41,20 @@ const PRIORIDADES: { value: TicketPrioridad; label: string }[] = [
   { value: "URGENTE", label: "Urgente" },
 ];
 
+const ESTADOS_BLOQUEADOS: TicketEstado[] = ["RESUELTO", "CERRADO"];
+
 export function SoporteTicketAcciones({
   ticketId,
   estado,
   prioridad,
   puedeModificar,
+  esAdmin,
 }: {
   ticketId: string;
   estado: TicketEstado;
   prioridad: TicketPrioridad;
   puedeModificar: boolean;
+  esAdmin: boolean;
 }) {
   const router = useRouter();
   const [pendingKey, setPendingKey] = useState<PendingKey>(null);
@@ -94,6 +98,8 @@ export function SoporteTicketAcciones({
 
   const busy = pendingKey !== null;
   const transiciones = TRANSICIONES[estado] ?? [];
+  const bloqueadoNoAdmin =
+    !esAdmin && ESTADOS_BLOQUEADOS.includes(estado);
 
   return (
     <div className="flex flex-col gap-6">
@@ -145,7 +151,7 @@ export function SoporteTicketAcciones({
         </Card>
       )}
 
-      {puedeModificar && transiciones.length > 0 && (
+      {esAdmin && transiciones.length > 0 && (
         <Card>
           <CardContent className="flex flex-col gap-3 py-6">
             <h3 className="text-sm font-semibold">Cambiar estado</h3>
@@ -191,36 +197,49 @@ export function SoporteTicketAcciones({
         </Card>
       )}
 
-      <Card>
-        <CardContent className="flex flex-col gap-3 py-6">
-          <h3 className="text-sm font-semibold">Agregar mensaje</h3>
-          <Input
-            placeholder="Escribe un mensaje..."
-            value={mensaje}
-            onChange={(e) => setMensaje(e.target.value)}
-          />
-          <div className="flex justify-end">
-            <Button
-              disabled={busy || mensaje.trim() === ""}
-              onClick={() => {
-                const fd = new FormData();
-                fd.set("id", ticketId);
-                fd.set("contenido", mensaje);
-                run(
-                  "mensaje",
-                  agregarMensajeSoporte,
-                  "Mensaje agregado",
-                  "No se pudo agregar el mensaje",
-                  fd
-                );
-              }}
-            >
-              {pendingKey === "mensaje" && <Spinner className="mr-2" />}
-              Enviar
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {bloqueadoNoAdmin ? (
+        <Card>
+          <CardContent className="flex flex-col gap-2 py-6">
+            <h3 className="text-sm font-semibold">Conversación cerrada</h3>
+            <p className="text-sm text-muted-foreground">
+              Este ticket está en estado{" "}
+              <span className="font-medium">{estado}</span> y no admite más
+              mensajes.
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="flex flex-col gap-3 py-6">
+            <h3 className="text-sm font-semibold">Agregar mensaje</h3>
+            <Input
+              placeholder="Escribe un mensaje..."
+              value={mensaje}
+              onChange={(e) => setMensaje(e.target.value)}
+            />
+            <div className="flex justify-end">
+              <Button
+                disabled={busy || mensaje.trim() === ""}
+                onClick={() => {
+                  const fd = new FormData();
+                  fd.set("id", ticketId);
+                  fd.set("contenido", mensaje);
+                  run(
+                    "mensaje",
+                    agregarMensajeSoporte,
+                    "Mensaje agregado",
+                    "No se pudo agregar el mensaje",
+                    fd
+                  );
+                }}
+              >
+                {pendingKey === "mensaje" && <Spinner className="mr-2" />}
+                Enviar
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
