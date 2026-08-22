@@ -87,8 +87,15 @@ incidencias o cambia el estado de un ticket.
 docker compose up -d
 ```
 
-Levanta PostgreSQL en `localhost:5432` con base `gestor_inmueble` y
-credenciales `postgres`/`postgres`. Persistencia en volumen `gestor_pgdata`.
+Levanta PostgreSQL en `127.0.0.1:5432` (solo loopback) con base
+`gestor_inmueble`. El usuario y la contraseña se leen desde `POSTGRES_USER`
+y `POSTGRES_PASSWORD` del `.env` — defínelos antes de levantar el stack
+(`docker-compose.yml` no los trae fijados). Persistencia en volumen
+`gestor_pgdata`.
+
+> ⚠️ Este compose es **solo para desarrollo**. Antes de desplegar en
+> producción elimina el bloque `ports` del servicio `postgres` para no
+> publicar la base de datos al exterior.
 
 ## Instalación
 
@@ -103,8 +110,10 @@ cp .env.example .env
 | Variable | Descripción |
 | --- | --- |
 | `DATABASE_URL` | URL de conexión PostgreSQL. |
+| `POSTGRES_USER` / `POSTGRES_PASSWORD` | Credenciales consumidas por `docker-compose.yml`. La `DATABASE_URL` debe usar los mismos valores. |
 | `AUTH_SECRET` | Secreto JWT de Auth.js. Genera uno con `openssl rand -base64 32`. |
 | `ADMIN_USERNAME` / `ADMIN_PASSWORD` / `ADMIN_NOMBRE` | Credenciales del admin inicial (se usan solo en el seed). |
+| `ASESOR_PASSWORD` | Contraseña del usuario asesor de desarrollo (se usa solo en el seed). `pnpm seed:asesor` falla si no está definida. |
 | `NODE_ENV` | `development` \| `production`. |
 | `TELEGRAM_BOT_TOKEN` | Token del bot de Telegram que envía las notificaciones (obtenido con `@BotFather`). Si se omite, los envíos se omiten silenciosamente. |
 | `TELEGRAM_CHAT_ID` | `chat_id` o ID de grupo al que se enviarán los avisos de tickets de soporte. |
@@ -134,6 +143,15 @@ pnpm seed:admin
 
 Lee `ADMIN_USERNAME`/`ADMIN_PASSWORD`/`ADMIN_NOMBRE` del `.env` y crea la fila
 correspondiente en `usuarios` con la contraseña hashed con `bcrypt`.
+
+## Crear el usuario asesor de desarrollo
+
+```bash
+pnpm seed:asesor
+```
+
+Lee `ASESOR_PASSWORD` del `.env` y crea el usuario `asesor` con rol `ASESOR`.
+El script falla con un error explícito si la variable no está definida.
 
 ## Ejecutar la aplicación
 
