@@ -45,6 +45,7 @@ export const authConfig: NextAuthConfig = {
             passwordHash: true,
             rol: true,
             estado: true,
+            sessionVersion: true,
           },
         });
 
@@ -59,16 +60,36 @@ export const authConfig: NextAuthConfig = {
           name: user.nombre,
           email: user.username,
           role: user.rol as Rol,
+          sessionVersion: user.sessionVersion,
         };
       },
     }),
   ],
   callbacks: {
-    jwt: ({ token, user }) => {
+    jwt: async ({ token, user }) => {
       if (user) {
         token.id = user.id as string;
         token.role = (user as { role: Rol }).role;
+        token.sessionVersion = (
+          user as { sessionVersion: number }
+        ).sessionVersion;
+        return token;
       }
+
+      if (typeof token.id === "string") {
+        const current = await prisma.usuario.findUnique({
+          where: { id: token.id },
+          select: { sessionVersion: true },
+        });
+
+        if (
+          !current ||
+          current.sessionVersion !== (token.sessionVersion as number)
+        ) {
+          return null;
+        }
+      }
+
       return token;
     },
     session: ({ session, token }) => {

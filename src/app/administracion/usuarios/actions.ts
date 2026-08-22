@@ -182,7 +182,10 @@ export async function cambiarEstadoUsuario(
 
   await prisma.usuario.update({
     where: { id: parsed.data.id },
-    data: { estado: parsed.data.estado },
+    data: {
+      estado: parsed.data.estado,
+      sessionVersion: { increment: 1 },
+    },
   });
 
   return { ok: true };
