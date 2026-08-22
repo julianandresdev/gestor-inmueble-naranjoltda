@@ -9,6 +9,11 @@ async function main() {
     throw new Error("DATABASE_URL no está definida.");
   }
 
+  const password = process.env.ASESOR_PASSWORD;
+  if (!password) {
+    throw new Error("ASESOR_PASSWORD no está definida.");
+  }
+
   const prisma = new PrismaClient({
     adapter: new PrismaPg({ connectionString }),
   });
@@ -28,7 +33,7 @@ async function main() {
       data: {
         nombre: "Asesor",
         username,
-        passwordHash: await bcrypt.hash("asesor123", 10),
+        passwordHash: await bcrypt.hash(password, 10),
         rol: "ASESOR",
         estado: "ACTIVO",
       },
