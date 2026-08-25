@@ -32,6 +32,14 @@ export function escapeHtml(input: string): string {
     .replace(/'/g, "&#39;");
 }
 
+function truncate(s: string, max: number): string {
+  return s.length > max ? s.slice(0, max - 1) + "…" : s;
+}
+
+const MAX_TITULO = 100;
+const MAX_DETALLE_COMENTARIO = 80;
+const MAX_ERROR_LOG = 200;
+
 export function getTelegramConfig() {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   const chatId = process.env.TELEGRAM_CHAT_ID;
@@ -73,15 +81,19 @@ export function formatTicketMessage(t: TicketNotificacion): string {
   const lines: string[] = [];
   lines.push(`<b>${accionEmoji} Ticket · ${escapeHtml(t.accion)}</b>`);
   lines.push("");
-  lines.push(`<b>${escapeHtml(t.titulo)}</b>`);
+  lines.push(`<b>${escapeHtml(truncate(t.titulo, MAX_TITULO))}</b>`);
   lines.push("");
   lines.push(
     `${estadoEmoji} ${escapeHtml(t.estado)} · ${prioridadEmoji} ${escapeHtml(t.prioridad)}`
   );
   lines.push(`<b>Autor:</b> ${escapeHtml(t.autor)}`);
   if (t.detalle) {
+    const detalle =
+      t.accion === "comentado"
+        ? truncate(t.detalle, MAX_DETALLE_COMENTARIO)
+        : t.detalle;
     lines.push("");
-    lines.push(escapeHtml(t.detalle));
+    lines.push(escapeHtml(detalle));
   }
   if (t.url) {
     lines.push("");
@@ -120,17 +132,15 @@ export async function sendTelegramMessage(
       }
     );
     if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      console.error(
-        `[telegram] HTTP ${res.status} al enviar mensaje: ${body.slice(0, 300)}`
-      );
+      console.error(`[telegram] HTTP ${res.status} al enviar mensaje`);
       return { ok: false, error: `HTTP_${res.status}` };
     }
     return { ok: true };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    console.error(`[telegram] Error al enviar mensaje: ${msg}`);
-    return { ok: false, error: msg };
+    const safe = truncate(msg, MAX_ERROR_LOG);
+    console.error(`[telegram] Error al enviar mensaje: ${safe}`);
+    return { ok: false, error: truncate(msg, MAX_ERROR_LOG) };
   } finally {
     clearTimeout(timer);
   }

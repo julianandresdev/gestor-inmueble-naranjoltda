@@ -99,7 +99,9 @@ async function notificar(
       url: buildUrl(ticketId),
     });
   } catch (e) {
-    console.error("[soporte] fallo notificando telegram:", e);
+    const msg = e instanceof Error ? e.message : String(e);
+    const safe = msg.length > 200 ? msg.slice(0, 200) + "…" : msg;
+    console.error(`[soporte] fallo notificando telegram: ${safe}`);
   }
 }
 
