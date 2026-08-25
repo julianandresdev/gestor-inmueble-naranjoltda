@@ -4,6 +4,13 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import {
+  buildRateLimitKey,
+  checkLock,
+  clearFailures,
+  getClientIp,
+  recordFailure,
+} from "@/lib/rate-limit";
 import type { Rol, Estado } from "@/generated/prisma/client";
 
 const credentialsSchema = z.object({
@@ -31,11 +38,28 @@ export const authConfig: NextAuthConfig = {
         username: { label: "Usuario", type: "text" },
         password: { label: "Contraseña", type: "password" },
       },
-      authorize: async (credentials) => {
+      authorize: async (credentials, request) => {
         const parsed = credentialsSchema.safeParse(credentials);
         if (!parsed.success) return null;
 
         const { username, password } = parsed.data;
+        const headers =
+          request instanceof Request
+            ? request.headers
+            : new Headers();
+        const ip = getClientIp(headers);
+        const key = buildRateLimitKey(ip, username);
+
+        const lock = checkLock(key);
+        if (lock.locked) {
+          console.warn("[auth] login blocked", {
+            username,
+            ip,
+            retryAfterSec: lock.retryAfterSec,
+          });
+          return null;
+        }
+
         const user = await prisma.usuario.findUnique({
           where: { username },
           select: {
@@ -49,12 +73,37 @@ export const authConfig: NextAuthConfig = {
           },
         });
 
-        if (!user) return null;
-        if (user.estado !== "ACTIVO" satisfies Estado) return null;
+        if (!user) {
+          recordFailure(key);
+          console.warn("[auth] login failed", {
+            username,
+            ip,
+            reason: "user_not_found",
+          });
+          return null;
+        }
+        if (user.estado !== "ACTIVO" satisfies Estado) {
+          recordFailure(key);
+          console.warn("[auth] login failed", {
+            username,
+            ip,
+            reason: "inactive",
+          });
+          return null;
+        }
 
         const valid = await bcrypt.compare(password, user.passwordHash);
-        if (!valid) return null;
+        if (!valid) {
+          recordFailure(key);
+          console.warn("[auth] login failed", {
+            username,
+            ip,
+            reason: "bad_password",
+          });
+          return null;
+        }
 
+        clearFailures(key);
         return {
           id: user.id,
           name: user.nombre,
