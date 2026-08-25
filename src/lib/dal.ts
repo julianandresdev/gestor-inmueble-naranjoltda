@@ -50,6 +50,27 @@ export const requireAdmin = cache(async () => {
   return user;
 });
 
+export const requireTicketAccess = cache(
+  async (userId: string, ticketId: string) => {
+    const session = await getCurrentUser();
+    if (!session) redirect("/login");
+
+    const ticket = await prisma.soporteTicket.findUnique({
+      where: { id: ticketId },
+      select: { id: true, createdById: true },
+    });
+
+    if (!ticket) redirect("/soporte");
+
+    const isOwner = ticket.createdById === userId;
+    const isAdmin = session.role === "ADMIN";
+
+    if (!isOwner && !isAdmin) redirect("/soporte");
+
+    return ticket;
+  }
+);
+
 export async function listUsuarios(): Promise<SafeUser[]> {
   await requireAdmin();
   return prisma.usuario.findMany({
@@ -571,9 +592,9 @@ export async function getSoporteTicket(
   id: string
 ): Promise<SoporteTicketDetalle | null> {
   const user = await requireAuth();
-  const isAdmin = user.role === "ADMIN";
+  await requireTicketAccess(user.id, id);
 
-  const ticket = await prisma.soporteTicket.findUnique({
+  return prisma.soporteTicket.findUnique({
     where: { id },
     select: {
       id: true,
@@ -588,15 +609,14 @@ export async function getSoporteTicket(
       cerradoPor: { select: { id: true, nombre: true } },
     },
   });
-  if (!ticket) return null;
-  if (!isAdmin && ticket.creadoPor.id !== user.id) return null;
-  return ticket;
 }
 
 export async function listSoporteMensajes(
   ticketId: string
 ): Promise<SoporteMensajeItem[]> {
-  await requireAuth();
+  const user = await requireAuth();
+  await requireTicketAccess(user.id, ticketId);
+
   return prisma.soporteMensaje.findMany({
     where: { ticketId },
     orderBy: [{ createdAt: "asc" }],
@@ -612,6 +632,9 @@ export async function listSoporteMensajes(
 export async function listarActividadSoporte(
   ticketId: string
 ): Promise<ActividadItem[]> {
+  const user = await requireAuth();
+  await requireTicketAccess(user.id, ticketId);
+
   const rows = await prisma.actividad.findMany({
     where: { soporteTicketId: ticketId },
     orderBy: { createdAt: "desc" },
