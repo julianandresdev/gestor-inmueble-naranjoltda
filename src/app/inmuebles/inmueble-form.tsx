@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -86,7 +86,7 @@ export function InmuebleForm({
     register,
     handleSubmit,
     setValue,
-    watch,
+    control,
     formState: { errors },
   } = useForm<InmuebleFormValues>({
     resolver: zodResolver(inmuebleSchema),
@@ -116,7 +116,7 @@ export function InmuebleForm({
         },
   });
 
-  const destinacion = watch("destinacion");
+  const destinacion = useWatch({ control, name: "destinacion" });
 
   const onSubmit = (data: InmuebleFormValues) => {
     const fd = new FormData();

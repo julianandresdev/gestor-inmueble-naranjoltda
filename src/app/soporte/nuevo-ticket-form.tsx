@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
@@ -45,7 +45,7 @@ export function NuevoTicketForm() {
     register,
     handleSubmit,
     setValue,
-    watch,
+    control,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -56,7 +56,7 @@ export function NuevoTicketForm() {
     },
   });
 
-  const prioridad = watch("prioridad");
+  const prioridad = useWatch({ control, name: "prioridad" });
   const [pending, startTransition] = useTransition();
 
   const onSubmit = (data: FormValues) => {

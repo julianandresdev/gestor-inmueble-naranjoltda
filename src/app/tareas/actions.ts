@@ -7,6 +7,63 @@ import { requireAuth } from "@/lib/dal";
 import { registrarActividad, withTransaction } from "@/lib/audit";
 import { z } from "zod";
 
+const APP_TZ = process.env.APP_TIMEZONE ?? "America/Bogota";
+const MAX_YEARS_AHEAD = 5;
+
+function todayInTZ(): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: APP_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const y = parts.find((p) => p.type === "year")?.value;
+  const m = parts.find((p) => p.type === "month")?.value;
+  const d = parts.find((p) => p.type === "day")?.value;
+  return `${y}-${m}-${d}`;
+}
+
+function addYears(dateStr: string, years: number): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const date = new Date(Date.UTC(y, m - 1, d));
+  date.setUTCFullYear(date.getUTCFullYear() + years);
+  return date.toISOString().slice(0, 10);
+}
+
+function isRealISODate(s: string): boolean {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (!m) return false;
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  const d = Number(m[3]);
+  const date = new Date(Date.UTC(y, mo - 1, d));
+  return (
+    date.getUTCFullYear() === y &&
+    date.getUTCMonth() === mo - 1 &&
+    date.getUTCDate() === d
+  );
+}
+
+const fechaLimiteSchema = z
+  .string()
+  .trim()
+  .refine(
+    (v) => v === "" || isRealISODate(v),
+    "Fecha inválida"
+  )
+  .refine(
+    (v) => {
+      if (v === "") return true;
+      const hoy = todayInTZ();
+      const max = addYears(hoy, MAX_YEARS_AHEAD);
+      return v >= hoy && v <= max;
+    },
+    `La fecha límite debe estar entre hoy y ${MAX_YEARS_AHEAD} años en el futuro`
+  )
+  .transform((v) => (v === "" ? null : v))
+  .optional()
+  .nullable();
+
 const crearSchema = z.object({
   titulo: z
     .string()
@@ -15,12 +72,7 @@ const crearSchema = z.object({
     .max(200, "El título es demasiado largo"),
   descripcion: z.string().trim().max(4000).optional().nullable(),
   inmuebleId: z.string().trim().min(1).optional().nullable(),
-  fechaLimite: z
-    .string()
-    .trim()
-    .regex(/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/, "Fecha inválida")
-    .optional()
-    .nullable(),
+  fechaLimite: fechaLimiteSchema,
   importante: z
     .union([z.literal("on"), z.literal(""), z.null(), z.undefined()])
     .optional(),

@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { useTransition } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
@@ -40,13 +40,12 @@ export function NuevaTareaForm({
   inmuebles: { id: string; noInm: string; direccion: string | null }[];
 }) {
   const router = useRouter();
-  const formRef = useRef<HTMLFormElement>(null);
 
   const {
     register,
     handleSubmit,
     setValue,
-    watch,
+    control,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -58,11 +57,11 @@ export function NuevaTareaForm({
     },
   });
 
-  const inmuebleId = watch("inmuebleId");
+  const inmuebleId = useWatch({ control, name: "inmuebleId" });
   const [pending, startTransition] = useTransition();
 
   const onSubmit = (data: FormValues) => {
-    const fd = new FormData(formRef.current ?? undefined);
+    const fd = new FormData();
     fd.set("titulo", data.titulo);
     if (data.descripcion) fd.set("descripcion", data.descripcion);
     if (data.inmuebleId) fd.set("inmuebleId", data.inmuebleId);
@@ -81,7 +80,6 @@ export function NuevaTareaForm({
 
   return (
     <form
-      ref={formRef}
       onSubmit={handleSubmit(onSubmit)}
       className="flex flex-col gap-6"
     >

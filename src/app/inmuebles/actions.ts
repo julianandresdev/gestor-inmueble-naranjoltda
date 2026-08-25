@@ -21,10 +21,42 @@ const camposBase = {
   docArrendatario: z.string().trim().max(60).optional().nullable(),
   arrendatario: z.string().trim().max(180).optional().nullable(),
   celArre1: z.string().trim().max(40).optional().nullable(),
-  emailArre: z.string().trim().max(160).optional().nullable(),
+  emailArre: z
+    .preprocess(
+      (v) => {
+        if (typeof v !== "string") return v;
+        const t = v.trim();
+        return t === "" ? null : t.toLowerCase();
+      },
+      z.union([
+        z
+          .string()
+          .max(160)
+          .pipe(z.email("Email de arrendatario inválido")),
+        z.null(),
+      ])
+    )
+    .optional()
+    .nullable(),
   docPropietario: z.string().trim().max(60).optional().nullable(),
   propietario: z.string().trim().max(180).optional().nullable(),
-  emailPro: z.string().trim().max(160).optional().nullable(),
+  emailPro: z
+    .preprocess(
+      (v) => {
+        if (typeof v !== "string") return v;
+        const t = v.trim();
+        return t === "" ? null : t.toLowerCase();
+      },
+      z.union([
+        z
+          .string()
+          .max(160)
+          .pipe(z.email("Email de propietario inválido")),
+        z.null(),
+      ])
+    )
+    .optional()
+    .nullable(),
   celPro1: z.string().trim().max(40).optional().nullable(),
   vigenciaContrato: z.string().trim().max(80).optional().nullable(),
   nomAdmin: z.string().trim().max(180).optional().nullable(),
