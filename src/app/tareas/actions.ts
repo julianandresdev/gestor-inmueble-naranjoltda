@@ -7,7 +7,7 @@ import { requireAuth } from "@/lib/dal";
 import { registrarActividad, withTransaction } from "@/lib/audit";
 import { z } from "zod";
 
-const APP_TZ = process.env.APP_TIMEZONE ?? "America/Bogota";
+const APP_TZ = "America/Bogota";
 const MAX_YEARS_AHEAD = 5;
 
 function todayInTZ(): string {
