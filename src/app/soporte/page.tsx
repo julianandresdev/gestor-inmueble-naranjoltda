@@ -43,10 +43,11 @@ export default async function SoportePage({
     prioridad: (get("prioridad") as TicketPrioridad | undefined) ?? undefined,
   };
 
-  const [tickets, kpis] = await Promise.all([
+  const [ticketsPage, kpis] = await Promise.all([
     listSoporteTickets(filtros),
     getSoporteKpis(),
   ]);
+  const { items: tickets } = ticketsPage;
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-6 px-4 py-10">

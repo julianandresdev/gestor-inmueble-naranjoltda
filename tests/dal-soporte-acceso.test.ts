@@ -4,8 +4,8 @@ const { mockAuth, mockPrisma, mockRedirect } = vi.hoisted(() => ({
   mockAuth: vi.fn(),
   mockPrisma: {
     soporteTicket: { findUnique: vi.fn() },
-    soporteMensaje: { findMany: vi.fn() },
-    actividad: { findMany: vi.fn() },
+    soporteMensaje: { findMany: vi.fn(), count: vi.fn() },
+    actividad: { findMany: vi.fn(), count: vi.fn() },
   },
   mockRedirect: vi.fn((url: string) => {
     const err = new Error(`REDIRECT ${url}`);
@@ -52,7 +52,9 @@ beforeEach(() => {
     createdById: OWNER.id,
   });
   mockPrisma.soporteMensaje.findMany.mockResolvedValue([]);
+  mockPrisma.soporteMensaje.count.mockResolvedValue(0);
   mockPrisma.actividad.findMany.mockResolvedValue([]);
+  mockPrisma.actividad.count.mockResolvedValue(0);
 });
 
 describe("dal — listSoporteMensajes — control de acceso al ticket", () => {
@@ -65,10 +67,12 @@ describe("dal — listSoporteMensajes — control de acceso al ticket", () => {
         autor: { id: OWNER.id, nombre: OWNER.name },
       },
     ]);
+    mockPrisma.soporteMensaje.count.mockResolvedValue(1);
 
     const res = await listSoporteMensajes("t1");
 
-    expect(res).toHaveLength(1);
+    expect(res.items).toHaveLength(1);
+    expect(res.items[0]?.id).toBe("m1");
     expect(mockPrisma.soporteMensaje.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { ticketId: "t1" } })
     );
@@ -97,7 +101,7 @@ describe("dal — listSoporteMensajes — control de acceso al ticket", () => {
 
     const res = await listSoporteMensajes("t1");
 
-    expect(res).toEqual([]);
+    expect(res.items).toEqual([]);
     expect(mockPrisma.soporteMensaje.findMany).toHaveBeenCalled();
   });
 
@@ -129,10 +133,11 @@ describe("dal — listarActividadSoporte — control de acceso al ticket", () =>
         usuario: { nombre: OWNER.name },
       },
     ]);
+    mockPrisma.actividad.count.mockResolvedValue(1);
 
     const res = await listarActividadSoporte("t1");
 
-    expect(res).toHaveLength(1);
+    expect(res.items).toHaveLength(1);
     expect(mockPrisma.actividad.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { soporteTicketId: "t1" } })
     );
@@ -161,7 +166,9 @@ describe("dal — listarActividadSoporte — control de acceso al ticket", () =>
   it("ADMIN puede leer actividad de cualquier ticket", async () => {
     mockAuth.mockResolvedValue({ user: ADMIN });
 
-    await expect(listarActividadSoporte("t1")).resolves.toEqual([]);
+    const res = await listarActividadSoporte("t1");
+
+    expect(res.items).toEqual([]);
     expect(mockPrisma.actividad.findMany).toHaveBeenCalled();
   });
 });

@@ -52,11 +52,12 @@ export default async function TareasPage({
     tipo: (get("tipo") as "con-inmueble" | "generales" | undefined) ?? undefined,
   };
 
-  const [tareas, resumen, responsables] = await Promise.all([
+  const [tareasPage, resumen, responsables] = await Promise.all([
     listTareas(filtros),
     getResumenTareas(),
     listResponsables(),
   ]);
+  const { items: tareas } = tareasPage;
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-6 px-4 py-10">

@@ -42,11 +42,13 @@ export default async function SoporteDetallePage({
   const user = await requireAuth();
   const { id } = await params;
 
-  const [ticket, mensajes, actividad] = await Promise.all([
+  const [ticket, mensajesPage, actividadPage] = await Promise.all([
     getSoporteTicket(id),
     listSoporteMensajes(id),
     listarActividadSoporte(id),
   ]);
+  const { items: mensajes } = mensajesPage;
+  const { items: actividad } = actividadPage;
 
   if (!ticket) notFound();
 

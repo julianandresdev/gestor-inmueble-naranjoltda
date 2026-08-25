@@ -16,7 +16,7 @@ export async function NotasSection({
   inmuebleId: string;
   activo: boolean;
 }) {
-  const notas = await listarNotas(inmuebleId);
+  const { items: notas } = await listarNotas(inmuebleId);
 
   return (
     <Card>

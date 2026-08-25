@@ -32,10 +32,11 @@ export default async function InmueblesPage({
     destinacion: (get("destinacion") as Destinacion | undefined) ?? undefined,
   };
 
-  const [inmuebles, opciones] = await Promise.all([
+  const [inmueblesPage, opciones] = await Promise.all([
     listInmuebles(filtros),
     getOpcionesFiltros(),
   ]);
+  const { items: inmuebles, total: totalInmuebles } = inmueblesPage;
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-6 px-4 py-10">
@@ -43,8 +44,8 @@ export default async function InmueblesPage({
         <div className="flex flex-col">
           <h1 className="text-2xl font-semibold tracking-tight">Inmuebles</h1>
           <p className="text-sm text-muted-foreground">
-            {inmuebles.length} inmueble{inmuebles.length === 1 ? "" : "s"} activo
-            {inmuebles.length === 1 ? "" : "s"}
+            {totalInmuebles} inmueble{totalInmuebles === 1 ? "" : "s"} activo
+            {totalInmuebles === 1 ? "" : "s"}
           </p>
         </div>
         <Button nativeButton={false} render={<Link href="/inmuebles/nuevo" />}>

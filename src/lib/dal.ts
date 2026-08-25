@@ -23,6 +23,41 @@ export type SafeUser = {
   updatedAt: Date;
 };
 
+export type Page<T> = {
+  items: T[];
+  nextCursor: string | null;
+  total: number;
+};
+
+export type PageOptions = {
+  cursor?: string | null;
+  take?: number;
+};
+
+export const DEFAULT_TAKE = 25;
+export const MAX_TAKE = 100;
+
+function encodeCursor(payload: unknown): string {
+  return Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
+}
+
+function decodeCursor<T>(cursor: string | null | undefined): T | null {
+  if (!cursor) return null;
+  try {
+    return JSON.parse(
+      Buffer.from(cursor, "base64url").toString("utf8")
+    ) as T;
+  } catch {
+    return null;
+  }
+}
+
+function resolveTake(take: number | undefined): number {
+  const raw = take ?? DEFAULT_TAKE;
+  if (!Number.isFinite(raw)) return DEFAULT_TAKE;
+  return Math.min(Math.max(Math.floor(raw), 1), MAX_TAKE);
+}
+
 const selectSafe = {
   id: true,
   nombre: true,
@@ -137,14 +172,34 @@ function buildWhere(filtros: InmuebleFiltros): Prisma.InmuebleWhereInput {
 }
 
 export async function listInmuebles(
-  filtros: InmuebleFiltros = {}
-): Promise<InmuebleListItem[]> {
+  filtros: InmuebleFiltros = {},
+  options: PageOptions = {}
+): Promise<Page<InmuebleListItem>> {
   await requireAuth();
-  return prisma.inmueble.findMany({
-    where: buildWhere(filtros),
-    select: selectInmuebleListItem,
-    orderBy: [{ noInm: "asc" }],
-  });
+  const take = resolveTake(options.take);
+  const baseWhere = buildWhere(filtros);
+  const c = decodeCursor<{ noInm: string }>(options.cursor);
+  const where: Prisma.InmuebleWhereInput = {
+    ...baseWhere,
+    ...(c ? { noInm: { gt: c.noInm } } : {}),
+  };
+
+  const [rows, total] = await Promise.all([
+    prisma.inmueble.findMany({
+      where,
+      select: selectInmuebleListItem,
+      orderBy: [{ noInm: "asc" }, { id: "desc" }],
+      take: take + 1,
+    }),
+    prisma.inmueble.count({ where: baseWhere }),
+  ]);
+
+  const hasMore = rows.length > take;
+  const items = hasMore ? rows.slice(0, take) : rows;
+  const last = items[items.length - 1];
+  const nextCursor = hasMore && last ? encodeCursor({ noInm: last.noInm }) : null;
+
+  return { items, nextCursor, total };
 }
 
 export async function getOpcionesFiltros() {
@@ -195,18 +250,57 @@ export type NotaConAutor = {
   autor: { nombre: string; username: string };
 };
 
-export async function listarNotas(inmuebleId: string): Promise<NotaConAutor[]> {
+export async function listarNotas(
+  inmuebleId: string,
+  options: PageOptions = {}
+): Promise<Page<NotaConAutor>> {
   await requireAuth();
-  return prisma.nota.findMany({
-    where: { inmuebleId },
-    select: {
-      id: true,
-      contenido: true,
-      createdAt: true,
-      autor: { select: { nombre: true, username: true } },
-    },
-    orderBy: [{ createdAt: "desc" }],
-  });
+  const take = resolveTake(options.take);
+  const c = decodeCursor<{ createdAt: string; id: string }>(options.cursor);
+  const where: Prisma.NotaWhereInput = {
+    inmuebleId,
+    ...(c
+      ? {
+          OR: [
+            { createdAt: { lt: new Date(c.createdAt) } },
+            {
+              AND: [
+                { createdAt: new Date(c.createdAt) },
+                { id: { lt: c.id } },
+              ],
+            },
+          ],
+        }
+      : {}),
+  };
+
+  const [rows, total] = await Promise.all([
+    prisma.nota.findMany({
+      where,
+      select: {
+        id: true,
+        contenido: true,
+        createdAt: true,
+        autor: { select: { nombre: true, username: true } },
+      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: take + 1,
+    }),
+    prisma.nota.count({ where: { inmuebleId } }),
+  ]);
+
+  const hasMore = rows.length > take;
+  const items = hasMore ? rows.slice(0, take) : rows;
+  const last = items[items.length - 1];
+  const nextCursor =
+    hasMore && last
+      ? encodeCursor({
+          createdAt: last.createdAt.toISOString(),
+          id: last.id,
+        })
+      : null;
+
+  return { items, nextCursor, total };
 }
 
 export type TareaListItem = {
@@ -258,24 +352,80 @@ function buildTareaWhere(filtros: TareaFiltros): Prisma.TareaWhereInput {
 }
 
 export async function listTareas(
-  filtros: TareaFiltros = {}
-): Promise<TareaListItem[]> {
+  filtros: TareaFiltros = {},
+  options: PageOptions = {}
+): Promise<Page<TareaListItem>> {
   await requireAuth();
-  return prisma.tarea.findMany({
-    where: buildTareaWhere(filtros),
-    select: {
-      id: true,
-      titulo: true,
-      estado: true,
-      importante: true,
-      urgente: true,
-      fechaLimite: true,
-      createdAt: true,
-      inmueble: { select: { id: true, noInm: true } },
-      asignadaA: { select: { id: true, nombre: true } },
-    },
-    orderBy: [{ fechaLimite: "asc" }, { createdAt: "desc" }],
-  });
+  const take = resolveTake(options.take);
+  const baseWhere = buildTareaWhere(filtros);
+  const c = decodeCursor<{
+    fechaLimite: string | null;
+    createdAt: string;
+    id: string;
+  }>(options.cursor);
+  const where: Prisma.TareaWhereInput = {
+    ...baseWhere,
+    ...(c
+      ? {
+          OR: [
+            ...(c.fechaLimite !== null
+              ? [{ fechaLimite: { gt: new Date(c.fechaLimite) } }]
+              : [{ fechaLimite: null }]),
+            {
+              AND: [
+                { fechaLimite: c.fechaLimite === null ? null : new Date(c.fechaLimite) },
+                { createdAt: { lt: new Date(c.createdAt) } },
+              ],
+            },
+            {
+              AND: [
+                { fechaLimite: c.fechaLimite === null ? null : new Date(c.fechaLimite) },
+                { createdAt: new Date(c.createdAt) },
+                { id: { lt: c.id } },
+              ],
+            },
+          ],
+        }
+      : {}),
+  };
+
+  const [rows, total] = await Promise.all([
+    prisma.tarea.findMany({
+      where,
+      select: {
+        id: true,
+        titulo: true,
+        estado: true,
+        importante: true,
+        urgente: true,
+        fechaLimite: true,
+        createdAt: true,
+        inmueble: { select: { id: true, noInm: true } },
+        asignadaA: { select: { id: true, nombre: true } },
+      },
+      orderBy: [
+        { fechaLimite: "asc" },
+        { createdAt: "desc" },
+        { id: "desc" },
+      ],
+      take: take + 1,
+    }),
+    prisma.tarea.count({ where: baseWhere }),
+  ]);
+
+  const hasMore = rows.length > take;
+  const items = hasMore ? rows.slice(0, take) : rows;
+  const last = items[items.length - 1];
+  const nextCursor =
+    hasMore && last
+      ? encodeCursor({
+          fechaLimite: last.fechaLimite?.toISOString() ?? null,
+          createdAt: last.createdAt.toISOString(),
+          id: last.id,
+        })
+      : null;
+
+  return { items, nextCursor, total };
 }
 
 export async function getResumenTareas() {
@@ -556,27 +706,53 @@ function buildSoporteWhere(
 }
 
 export async function listSoporteTickets(
-  filtros: SoporteFiltros = {}
-): Promise<SoporteTicketListItem[]> {
+  filtros: SoporteFiltros = {},
+  options: PageOptions = {}
+): Promise<Page<SoporteTicketListItem>> {
   const user = await requireAuth();
   const isAdmin = user.role === "ADMIN";
 
-  const tickets = await prisma.soporteTicket.findMany({
-    where: buildSoporteWhere(user.id, isAdmin, filtros),
-    orderBy: [{ updatedAt: "desc" }],
-    select: {
-      id: true,
-      titulo: true,
-      estado: true,
-      prioridad: true,
-      createdAt: true,
-      updatedAt: true,
-      creadoPor: { select: { id: true, nombre: true } },
-      _count: { select: { mensajes: true } },
-    },
-  });
+  const take = resolveTake(options.take);
+  const baseWhere = buildSoporteWhere(user.id, isAdmin, filtros);
+  const c = decodeCursor<{ updatedAt: string; id: string }>(options.cursor);
+  const where: Prisma.SoporteTicketWhereInput = {
+    ...baseWhere,
+    ...(c
+      ? {
+          OR: [
+            { updatedAt: { lt: new Date(c.updatedAt) } },
+            {
+              AND: [
+                { updatedAt: new Date(c.updatedAt) },
+                { id: { lt: c.id } },
+              ],
+            },
+          ],
+        }
+      : {}),
+  };
 
-  return tickets.map((t) => ({
+  const [tickets, total] = await Promise.all([
+    prisma.soporteTicket.findMany({
+      where,
+      orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+      take: take + 1,
+      select: {
+        id: true,
+        titulo: true,
+        estado: true,
+        prioridad: true,
+        createdAt: true,
+        updatedAt: true,
+        creadoPor: { select: { id: true, nombre: true } },
+        _count: { select: { mensajes: true } },
+      },
+    }),
+    prisma.soporteTicket.count({ where: baseWhere }),
+  ]);
+
+  const hasMore = tickets.length > take;
+  const items = (hasMore ? tickets.slice(0, take) : tickets).map((t) => ({
     id: t.id,
     titulo: t.titulo,
     estado: t.estado,
@@ -586,6 +762,16 @@ export async function listSoporteTickets(
     creadoPor: t.creadoPor,
     mensajesCount: t._count.mensajes,
   }));
+  const last = items[items.length - 1];
+  const nextCursor =
+    hasMore && last
+      ? encodeCursor({
+          updatedAt: last.updatedAt.toISOString(),
+          id: last.id,
+        })
+      : null;
+
+  return { items, nextCursor, total };
 }
 
 export async function getSoporteTicket(
@@ -612,47 +798,120 @@ export async function getSoporteTicket(
 }
 
 export async function listSoporteMensajes(
-  ticketId: string
-): Promise<SoporteMensajeItem[]> {
+  ticketId: string,
+  options: PageOptions = {}
+): Promise<Page<SoporteMensajeItem>> {
   const user = await requireAuth();
   await requireTicketAccess(user.id, ticketId);
 
-  return prisma.soporteMensaje.findMany({
-    where: { ticketId },
-    orderBy: [{ createdAt: "asc" }],
-    select: {
-      id: true,
-      contenido: true,
-      createdAt: true,
-      autor: { select: { id: true, nombre: true } },
-    },
-  });
+  const take = resolveTake(options.take);
+  const c = decodeCursor<{ createdAt: string; id: string }>(options.cursor);
+  const where: Prisma.SoporteMensajeWhereInput = {
+    ticketId,
+    ...(c
+      ? {
+          OR: [
+            { createdAt: { gt: new Date(c.createdAt) } },
+            {
+              AND: [
+                { createdAt: new Date(c.createdAt) },
+                { id: { gt: c.id } },
+              ],
+            },
+          ],
+        }
+      : {}),
+  };
+
+  const [rows, total] = await Promise.all([
+    prisma.soporteMensaje.findMany({
+      where,
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      take: take + 1,
+      select: {
+        id: true,
+        contenido: true,
+        createdAt: true,
+        autor: { select: { id: true, nombre: true } },
+      },
+    }),
+    prisma.soporteMensaje.count({ where: { ticketId } }),
+  ]);
+
+  const hasMore = rows.length > take;
+  const items = hasMore ? rows.slice(0, take) : rows;
+  const last = items[items.length - 1];
+  const nextCursor =
+    hasMore && last
+      ? encodeCursor({
+          createdAt: last.createdAt.toISOString(),
+          id: last.id,
+        })
+      : null;
+
+  return { items, nextCursor, total };
 }
 
 export async function listarActividadSoporte(
-  ticketId: string
-): Promise<ActividadItem[]> {
+  ticketId: string,
+  options: PageOptions = {}
+): Promise<Page<ActividadItem>> {
   const user = await requireAuth();
   await requireTicketAccess(user.id, ticketId);
 
-  const rows = await prisma.actividad.findMany({
-    where: { soporteTicketId: ticketId },
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      tipo: true,
-      context: true,
-      createdAt: true,
-      usuario: { select: { nombre: true } },
-    },
-  });
-  return rows.map((r) => ({
+  const take = resolveTake(options.take);
+  const c = decodeCursor<{ createdAt: string; id: string }>(options.cursor);
+  const where: Prisma.ActividadWhereInput = {
+    soporteTicketId: ticketId,
+    ...(c
+      ? {
+          OR: [
+            { createdAt: { lt: new Date(c.createdAt) } },
+            {
+              AND: [
+                { createdAt: new Date(c.createdAt) },
+                { id: { lt: c.id } },
+              ],
+            },
+          ],
+        }
+      : {}),
+  };
+
+  const [rows, total] = await Promise.all([
+    prisma.actividad.findMany({
+      where,
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: take + 1,
+      select: {
+        id: true,
+        tipo: true,
+        context: true,
+        createdAt: true,
+        usuario: { select: { nombre: true } },
+      },
+    }),
+    prisma.actividad.count({ where: { soporteTicketId: ticketId } }),
+  ]);
+
+  const hasMore = rows.length > take;
+  const rawItems = (hasMore ? rows.slice(0, take) : rows).map((r) => ({
     id: r.id,
     tipo: r.tipo,
     user: r.usuario.nombre,
     context: r.context,
     createdAt: r.createdAt,
   }));
+  const last = rawItems[rawItems.length - 1];
+  const nextCursor =
+    hasMore && last
+      ? encodeCursor({
+          createdAt: last.createdAt.toISOString(),
+          id: last.id,
+        })
+      : null;
+
+  return { items: rawItems, nextCursor, total };
 }
 
 export type SoporteKpis = {
