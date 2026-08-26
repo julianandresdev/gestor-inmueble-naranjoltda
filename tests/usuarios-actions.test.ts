@@ -37,6 +37,7 @@ describe("administracion/usuarios/actions — crearUsuario", () => {
     fd.set("nombre", "Test");
     fd.set("username", "nuevo");
     fd.set("password", "secreto123");
+    fd.set("confirmPassword", "secreto123");
     fd.set("rol", "ASESOR");
 
     const res = await crearUsuario({}, fd);
@@ -50,9 +51,24 @@ describe("administracion/usuarios/actions — crearUsuario", () => {
     fd.set("nombre", "Test");
     fd.set("username", "nuevo");
     fd.set("password", "123");
+    fd.set("confirmPassword", "123");
     fd.set("rol", "ASESOR");
     const res = await crearUsuario({}, fd);
     expect(res.error).toBeDefined();
+    expect(mockPrisma.usuario.create).not.toHaveBeenCalled();
+  });
+
+  it("rechaza contraseñas que no coinciden", async () => {
+    const fd = new FormData();
+    fd.set("nombre", "Test");
+    fd.set("username", "nuevo");
+    fd.set("password", "secreto123");
+    fd.set("confirmPassword", "secreto456");
+    fd.set("rol", "ASESOR");
+    const res = await crearUsuario({}, fd);
+    expect(res.fieldErrors?.confirmPassword).toBe(
+      "Las contraseñas no coinciden"
+    );
     expect(mockPrisma.usuario.create).not.toHaveBeenCalled();
   });
 
@@ -64,6 +80,7 @@ describe("administracion/usuarios/actions — crearUsuario", () => {
     fd.set("nombre", "Test");
     fd.set("username", "nuevo");
     fd.set("password", "secreto123");
+    fd.set("confirmPassword", "secreto123");
     fd.set("rol", "ASESOR");
 
     const res = await crearUsuario({}, fd);
@@ -71,6 +88,7 @@ describe("administracion/usuarios/actions — crearUsuario", () => {
     const call = mockPrisma.usuario.create.mock.calls[0][0];
     expect(call.data.passwordHash).not.toContain("secreto123");
     expect(call.data.passwordHash.length).toBeGreaterThan(20);
+    expect(call.data.confirmPassword).toBeUndefined();
   });
 });
 

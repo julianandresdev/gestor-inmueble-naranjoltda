@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/spinner";
 import { Input } from "@/components/ui/input";
@@ -28,6 +29,64 @@ import { useRouter } from "next/navigation";
 
 type Mode = "crear" | "editar";
 
+function PasswordField({
+  id,
+  name,
+  value,
+  onChange,
+  placeholder,
+  disabled,
+  showPassword,
+  onToggleShow,
+  error,
+}: {
+  id: string;
+  name: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  disabled?: boolean;
+  showPassword: boolean;
+  onToggleShow: () => void;
+  error?: string;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <Label htmlFor={id}>Contraseña</Label>
+      <div className="relative">
+        <Input
+          id={id}
+          name={name}
+          type={showPassword ? "text" : "password"}
+          autoComplete="new-password"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          disabled={disabled}
+          className="pr-10"
+        />
+        <button
+          type="button"
+          onClick={onToggleShow}
+          aria-label={
+            showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
+          }
+          aria-pressed={showPassword}
+          disabled={disabled}
+          className="absolute inset-y-0 right-0 flex items-center justify-center px-3 text-muted-foreground hover:text-foreground disabled:opacity-50"
+        >
+          {showPassword ? (
+            <EyeOff className="h-4 w-4" aria-hidden="true" />
+          ) : (
+            <Eye className="h-4 w-4" aria-hidden="true" />
+          )}
+        </button>
+      </div>
+      {error && <p className="text-sm text-destructive">{error}</p>}
+    </div>
+  );
+}
+
 function UsuarioForm({
   mode,
   usuario,
@@ -45,6 +104,12 @@ function UsuarioForm({
     {}
   );
 
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const passwordsMismatch =
+    confirmPassword.length > 0 && password !== confirmPassword;
+
   useEffect(() => {
     if (state.ok) {
       toast.success(mode === "crear" ? "Usuario creado" : "Usuario actualizado");
@@ -55,7 +120,10 @@ function UsuarioForm({
   }, [state.ok, state.error, mode, onSuccess]);
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
+    <form
+      action={formAction}
+      className="flex flex-col gap-4"
+    >
       {mode === "editar" && usuario && (
         <input type="hidden" name="id" value={usuario.id} />
       )}
@@ -91,21 +159,33 @@ function UsuarioForm({
       </div>
 
       {mode === "crear" && (
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="password">Contraseña</Label>
-          <Input
+        <>
+          <PasswordField
             id="password"
             name="password"
-            type="password"
+            value={password}
+            onChange={setPassword}
             placeholder="Mínimo 8 caracteres"
             disabled={pending}
+            showPassword={showPassword}
+            onToggleShow={() => setShowPassword((v) => !v)}
+            error={state.fieldErrors?.password}
           />
-          {state.fieldErrors?.password && (
-            <p className="text-sm text-destructive">
-              {state.fieldErrors.password}
-            </p>
-          )}
-        </div>
+          <PasswordField
+            id="confirmPassword"
+            name="confirmPassword"
+            value={confirmPassword}
+            onChange={setConfirmPassword}
+            placeholder="Repite la contraseña"
+            disabled={pending}
+            showPassword={showPassword}
+            onToggleShow={() => setShowPassword((v) => !v)}
+            error={
+              state.fieldErrors?.confirmPassword ??
+              (passwordsMismatch ? "Las contraseñas no coinciden" : undefined)
+            }
+          />
+        </>
       )}
 
       <div className="flex flex-col gap-2">
@@ -135,7 +215,10 @@ function UsuarioForm({
       )}
 
       <DialogFooter>
-        <Button type="submit" disabled={pending}>
+        <Button
+          type="submit"
+          disabled={pending || (mode === "crear" && passwordsMismatch)}
+        >
           {pending && <Spinner className="mr-2" />}
           {pending
             ? mode === "crear"

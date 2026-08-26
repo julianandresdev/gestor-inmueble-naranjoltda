@@ -14,11 +14,17 @@ const baseFields = {
     .regex(/^[a-zA-Z0-9._-]+$/, "Solo letras, números, '.', '_' y '-'"),
 };
 
-const createSchema = z.object({
-  ...baseFields,
-  password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
-  rol: z.enum(["ADMIN", "ASESOR"]),
-});
+const createSchema = z
+  .object({
+    ...baseFields,
+    password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
+    confirmPassword: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
+    rol: z.enum(["ADMIN", "ASESOR"]),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Las contraseñas no coinciden",
+    path: ["confirmPassword"],
+  });
 
 const updateSchema = z.object({
   ...baseFields,
@@ -55,6 +61,7 @@ export async function crearUsuario(
     nombre: formData.get("nombre"),
     username: formData.get("username"),
     password: formData.get("password"),
+    confirmPassword: formData.get("confirmPassword"),
     rol: formData.get("rol"),
   });
 
@@ -70,6 +77,7 @@ export async function crearUsuario(
   }
 
   const { password, ...data } = parsed.data;
+  delete (data as Record<string, unknown>).confirmPassword;
 
   const existente = await prisma.usuario.findUnique({
     where: { username: data.username },
