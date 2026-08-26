@@ -11,6 +11,7 @@ import type {
   TareaEstado,
   TicketEstado,
   TicketPrioridad,
+  ContactoTarea,
 } from "@/generated/prisma/client";
 
 export type SafeUser = {
@@ -82,6 +83,27 @@ export const requireAuth = cache(async () => {
 export const requireAdmin = cache(async () => {
   const user = await requireAuth();
   if (user.role !== "ADMIN") redirect("/inicio");
+  return user;
+});
+
+export const requireAdminOrAsesor = cache(async () => {
+  const user = await requireAuth();
+  if (user.role !== "ADMIN" && user.role !== "ASESOR") {
+    if (user.role === "MANTENIMIENTO") redirect("/mantenimiento");
+    redirect("/inicio");
+  }
+  return user;
+});
+
+export const requireMantenimiento = cache(async () => {
+  const user = await requireAuth();
+  if (
+    user.role !== "MANTENIMIENTO" &&
+    user.role !== "ADMIN" &&
+    user.role !== "ASESOR"
+  ) {
+    redirect("/inicio");
+  }
   return user;
 });
 
@@ -315,6 +337,8 @@ export type TareaListItem = {
   asignadaA: { id: string; nombre: string } | null;
 };
 
+export type TareaTipoFiltro = "GENERAL" | "MANTENIMIENTO";
+
 export type TareaFiltros = {
   q?: string;
   estado?: TareaEstado;
@@ -323,11 +347,13 @@ export type TareaFiltros = {
   urgente?: boolean;
   vencidas?: boolean;
   tipo?: "con-inmueble" | "generales";
+  clase?: TareaTipoFiltro;
 };
 
 function buildTareaWhere(filtros: TareaFiltros): Prisma.TareaWhereInput {
   const where: Prisma.TareaWhereInput = {
     estado: { not: "ARCHIVADA" },
+    tipo: filtros.clase ?? "GENERAL",
   };
 
   if (filtros.q && filtros.q.trim()) {
@@ -503,6 +529,234 @@ export async function listOpcionesInmuebles() {
     select: { id: true, noInm: true, direccion: true },
     orderBy: [{ noInm: "asc" }],
   });
+}
+
+export type MantenimientoListItem = {
+  id: string;
+  titulo: string;
+  estado: TareaEstado;
+  fechaLimite: Date | null;
+  contacto: ContactoTarea | null;
+  createdAt: Date;
+  inmueble: {
+    id: string;
+    noInm: string;
+    direccion: string | null;
+    telefonoContacto: string | null;
+    nombreContacto: string | null;
+  } | null;
+  creadoPor: { id: string; nombre: string };
+  asignadaA: { id: string; nombre: string } | null;
+};
+
+export type MantenimientoFiltros = {
+  q?: string;
+  estado?: TareaEstado | "TODOS";
+};
+
+function buildMantenimientoWhere(
+  filtros: MantenimientoFiltros,
+): Prisma.TareaWhereInput {
+  const where: Prisma.TareaWhereInput = {
+    tipo: "MANTENIMIENTO",
+    estado:
+      filtros.estado && filtros.estado !== "TODOS"
+        ? filtros.estado
+        : { in: ["SIN_ASIGNAR", "EN_PROGRESO", "COMPLETADA"] },
+  };
+
+  if (filtros.q && filtros.q.trim()) {
+    const t = filtros.q.trim();
+    where.OR = [
+      { titulo: { contains: t, mode: "insensitive" } },
+      { descripcion: { contains: t, mode: "insensitive" } },
+    ];
+  }
+
+  return where;
+}
+
+export async function listMantenimientoTareas(
+  filtros: MantenimientoFiltros = {},
+  options: PageOptions = {}
+): Promise<Page<MantenimientoListItem>> {
+  const session = await getCurrentUser();
+  if (!session) redirect("/login");
+
+  const take = resolveTake(options.take);
+  const baseWhere = buildMantenimientoWhere(filtros);
+
+  const [rows, total] = await Promise.all([
+    prisma.tarea.findMany({
+      where: baseWhere,
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: take + 1,
+      select: {
+        id: true,
+        titulo: true,
+        estado: true,
+        fechaLimite: true,
+        contacto: true,
+        createdAt: true,
+        inmueble: {
+          select: {
+            id: true,
+            noInm: true,
+            direccion: true,
+            arrendatario: true,
+            propietario: true,
+            celArre1: true,
+            celPro1: true,
+          },
+        },
+        creadoPor: { select: { id: true, nombre: true } },
+        asignadaA: { select: { id: true, nombre: true } },
+      },
+    }),
+    prisma.tarea.count({ where: baseWhere }),
+  ]);
+
+  const items = rows.map((r) => {
+    const tel =
+      r.contacto === "ARRENDATARIO"
+        ? r.inmueble?.celArre1 ?? null
+        : r.contacto === "PROPIETARIO"
+        ? r.inmueble?.celPro1 ?? null
+        : r.inmueble?.celArre1 ?? r.inmueble?.celPro1 ?? null;
+    const nom =
+      r.contacto === "ARRENDATARIO"
+        ? r.inmueble?.arrendatario ?? null
+        : r.contacto === "PROPIETARIO"
+        ? r.inmueble?.propietario ?? null
+        : r.inmueble?.arrendatario ?? r.inmueble?.propietario ?? null;
+    const inm =
+      r.inmueble == null
+        ? null
+        : {
+            id: r.inmueble.id,
+            noInm: r.inmueble.noInm,
+            direccion: r.inmueble.direccion,
+            telefonoContacto: tel,
+            nombreContacto: nom,
+          };
+    return {
+      id: r.id,
+      titulo: r.titulo,
+      estado: r.estado,
+      fechaLimite: r.fechaLimite,
+      contacto: r.contacto,
+      createdAt: r.createdAt,
+      inmueble: inm,
+      creadoPor: r.creadoPor,
+      asignadaA: r.asignadaA,
+    };
+  });
+
+  const hasMore = items.length > take;
+  const pageItems = hasMore ? items.slice(0, take) : items;
+  const last = pageItems[pageItems.length - 1];
+  const nextCursor =
+    hasMore && last
+      ? encodeCursor({ createdAt: last.createdAt.toISOString(), id: last.id })
+      : null;
+
+  return { items: pageItems, nextCursor, total };
+}
+
+export type MantenimientoDetalleItem = MantenimientoListItem & {
+  descripcion: string | null;
+};
+
+export async function getMantenimientoTarea(
+  id: string
+): Promise<MantenimientoDetalleItem | null> {
+  await getCurrentUser();
+  const r = await prisma.tarea.findUnique({
+    where: { id, tipo: "MANTENIMIENTO" },
+    select: {
+      id: true,
+      titulo: true,
+      estado: true,
+      fechaLimite: true,
+      contacto: true,
+      createdAt: true,
+      descripcion: true,
+      updatedAt: true,
+      completedAt: true,
+      assignedToId: true,
+      createdById: true,
+      inmueble: {
+        select: {
+          id: true,
+          noInm: true,
+          direccion: true,
+          arrendatario: true,
+          propietario: true,
+          celArre1: true,
+          celPro1: true,
+        },
+      },
+      creadoPor: { select: { id: true, nombre: true } },
+      asignadaA: { select: { id: true, nombre: true } },
+    },
+  });
+  if (!r) return null;
+  const tel =
+    r.contacto === "ARRENDATARIO"
+      ? r.inmueble?.celArre1 ?? null
+      : r.contacto === "PROPIETARIO"
+      ? r.inmueble?.celPro1 ?? null
+      : r.inmueble?.celArre1 ?? r.inmueble?.celPro1 ?? null;
+  const nom =
+    r.contacto === "ARRENDATARIO"
+      ? r.inmueble?.arrendatario ?? null
+      : r.contacto === "PROPIETARIO"
+      ? r.inmueble?.propietario ?? null
+      : r.inmueble?.arrendatario ?? r.inmueble?.propietario ?? null;
+  const inm =
+    r.inmueble == null
+      ? null
+      : {
+          id: r.inmueble.id,
+          noInm: r.inmueble.noInm,
+          direccion: r.inmueble.direccion,
+          telefonoContacto: tel,
+          nombreContacto: nom,
+        };
+  return {
+    id: r.id,
+    titulo: r.titulo,
+    estado: r.estado,
+    fechaLimite: r.fechaLimite,
+    contacto: r.contacto,
+    createdAt: r.createdAt,
+    descripcion: r.descripcion,
+    inmueble: inm,
+    creadoPor: r.creadoPor,
+    asignadaA: r.asignadaA,
+  };
+}
+
+export async function getMantenimientoResumen(): Promise<{
+  pendientes: number;
+  enProgreso: number;
+  finalizadas: number;
+}> {
+  await getCurrentUser();
+  const counts = await prisma.tarea.groupBy({
+    by: ["estado"],
+    where: { tipo: "MANTENIMIENTO" },
+    _count: { _all: true },
+  });
+  let pendientes = 0;
+  let enProgreso = 0;
+  let finalizadas = 0;
+  for (const g of counts) {
+    if (g.estado === "SIN_ASIGNAR") pendientes = g._count._all;
+    else if (g.estado === "EN_PROGRESO") enProgreso = g._count._all;
+    else if (g.estado === "COMPLETADA") finalizadas = g._count._all;
+  }
+  return { pendientes, enProgreso, finalizadas };
 }
 
 export type InmuebleArchivadoItem = {

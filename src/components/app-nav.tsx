@@ -8,39 +8,65 @@ export async function AppNav() {
   if (!session?.user) return null;
   const user = session.user;
   const isAdmin = user.role === "ADMIN";
+  const isAsesor = user.role === "ASESOR";
+  const isMantenimiento = user.role === "MANTENIMIENTO";
 
   return (
     <header className="w-full border-b bg-background">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4">
         <div className="flex items-center gap-4">
-          <Link href="/dashboard" className="flex items-center gap-2">
+          <Link href={isMantenimiento ? "/mantenimiento" : "/dashboard"} className="flex items-center gap-2">
             <Image src="/logo.png" alt="Naranjo Ltda." width={32} height={32} className="h-8 w-auto" priority />
           </Link>
           <nav className="flex items-center gap-1 text-sm">
-            <Link
-              href="/dashboard"
-              className="rounded px-2 py-1 font-medium hover:bg-muted"
-            >
-              Dashboard
-            </Link>
-            <Link
-              href="/inmuebles"
-              className="rounded px-2 py-1 hover:bg-muted"
-            >
-              Inmuebles
-            </Link>
-            <Link
-              href="/tareas"
-              className="rounded px-2 py-1 hover:bg-muted"
-            >
-              Tareas
-            </Link>
-            <Link
-              href="/soporte"
-              className="rounded px-2 py-1 hover:bg-muted"
-            >
-              Soporte
-            </Link>
+            {!isMantenimiento && (
+              <Link
+                href="/dashboard"
+                className="rounded px-2 py-1 font-medium hover:bg-muted"
+              >
+                Dashboard
+              </Link>
+            )}
+            {!isMantenimiento && (
+              <Link
+                href="/inmuebles"
+                className="rounded px-2 py-1 hover:bg-muted"
+              >
+                Inmuebles
+              </Link>
+            )}
+            {!isMantenimiento && (
+              <Link
+                href="/tareas"
+                className="rounded px-2 py-1 hover:bg-muted"
+              >
+                Tareas
+              </Link>
+            )}
+            {!isMantenimiento && (
+              <Link
+                href="/soporte"
+                className="rounded px-2 py-1 hover:bg-muted"
+              >
+                Soporte
+              </Link>
+            )}
+            {isMantenimiento && (
+              <Link
+                href="/mantenimiento"
+                className="rounded px-2 py-1 font-medium hover:bg-muted"
+              >
+                Mantenimiento
+              </Link>
+            )}
+            {(isAdmin || isAsesor) && (
+              <Link
+                href="/mantenimiento"
+                className="rounded px-2 py-1 hover:bg-muted"
+              >
+                Mantenimiento
+              </Link>
+            )}
             {isAdmin && (
               <Link
                 href="/administracion/archivados"

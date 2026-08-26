@@ -75,6 +75,10 @@ export const ACTIVIDAD_LABELS: Record<string, string> = {
   SOPORTE_PRIORIDAD: "Prioridad cambiada",
   USUARIO_PASSWORD_CAMBIADO: "Contraseña actualizada",
   USUARIO_PASSWORD_RESETEADO: "Contraseña reseteada por admin",
+  MANTENIMIENTO_TAREA_CREADA: "Tarea de mantenimiento creada",
+  MANTENIMIENTO_TAREA_RECLAMADA: "Tarea de mantenimiento reclamada",
+  MANTENIMIENTO_TAREA_FINALIZADA: "Tarea de mantenimiento finalizada",
+  MANTENIMIENTO_TAREA_LIBERADA: "Tarea de mantenimiento desreclamada",
 };
 
 export const ACTIVIDAD_PREFIX: Record<string, string> = {
@@ -96,6 +100,10 @@ export const ACTIVIDAD_PREFIX: Record<string, string> = {
   SOPORTE_PRIORIDAD: "⚑",
   USUARIO_PASSWORD_CAMBIADO: "🔑",
   USUARIO_PASSWORD_RESETEADO: "🔑",
+  MANTENIMIENTO_TAREA_CREADA: "🛠",
+  MANTENIMIENTO_TAREA_RECLAMADA: "▶",
+  MANTENIMIENTO_TAREA_FINALIZADA: "✓",
+  MANTENIMIENTO_TAREA_LIBERADA: "⏸",
 };
 
 type RegistrarArgs = {
@@ -118,7 +126,11 @@ type RegistrarArgs = {
     | "SOPORTE_COMENTADO"
     | "SOPORTE_PRIORIDAD"
     | "USUARIO_PASSWORD_CAMBIADO"
-    | "USUARIO_PASSWORD_RESETEADO";
+    | "USUARIO_PASSWORD_RESETEADO"
+    | "MANTENIMIENTO_TAREA_CREADA"
+    | "MANTENIMIENTO_TAREA_RECLAMADA"
+    | "MANTENIMIENTO_TAREA_FINALIZADA"
+    | "MANTENIMIENTO_TAREA_LIBERADA";
   entidad: "INMUEBLE" | "NOTA" | "TAREA" | "SOPORTE" | "USUARIO";
   entidadId: string;
   userId: string;

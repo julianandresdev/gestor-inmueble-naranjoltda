@@ -166,7 +166,28 @@ export const authConfig: NextAuthConfig = {
         return Response.redirect(new URL("/login", request.url));
       }
 
-      if (path.startsWith("/administracion") && auth?.user?.role !== "ADMIN") {
+      const role = auth?.user?.role;
+
+      if (role === "MANTENIMIENTO") {
+        const allowed =
+          path === "/mantenimiento" ||
+          path.startsWith("/mantenimiento/") ||
+          path === "/perfil" ||
+          path === "/inicio";
+        if (!allowed) {
+          return Response.redirect(new URL("/mantenimiento", request.url));
+        }
+        if (path === "/inicio") {
+          return Response.redirect(new URL("/mantenimiento", request.url));
+        }
+        return true;
+      }
+
+      if (path.startsWith("/administracion") && role !== "ADMIN") {
+        return Response.redirect(new URL("/dashboard", request.url));
+      }
+
+      if (path.startsWith("/mantenimiento") && role !== "ADMIN" && role !== "ASESOR") {
         return Response.redirect(new URL("/dashboard", request.url));
       }
 

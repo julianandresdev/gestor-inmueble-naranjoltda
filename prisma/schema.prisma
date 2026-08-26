@@ -92,6 +92,8 @@ model Tarea {
   importante   Boolean  @default(false)
   urgente      Boolean  @default(false)
   estado       TareaEstado @default(SIN_ASIGNAR)
+  tipo         TareaTipo @default(GENERAL)
+  contacto     ContactoTarea?
   createdById  String
   assignedToId String?
   createdAt    DateTime @default(now())
@@ -103,6 +105,7 @@ model Tarea {
   actividades  Actividad[]
 
   @@index([estado])
+  @@index([tipo])
   @@index([assignedToId])
   @@index([inmuebleId])
   @@index([fechaLimite])
@@ -112,6 +115,17 @@ model Tarea {
 enum Rol {
   ADMIN
   ASESOR
+  MANTENIMIENTO
+}
+
+enum TareaTipo {
+  GENERAL
+  MANTENIMIENTO
+}
+
+enum ContactoTarea {
+  ARRENDATARIO
+  PROPIETARIO
 }
 
 enum Estado {
@@ -230,6 +244,10 @@ enum ActividadTipo {
   SOPORTE_PRIORIDAD
   USUARIO_PASSWORD_CAMBIADO
   USUARIO_PASSWORD_RESETEADO
+  MANTENIMIENTO_TAREA_CREADA
+  MANTENIMIENTO_TAREA_RECLAMADA
+  MANTENIMIENTO_TAREA_FINALIZADA
+  MANTENIMIENTO_TAREA_LIBERADA
 }
 
 enum EntidadTipo {

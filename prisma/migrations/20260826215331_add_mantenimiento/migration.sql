@@ -1,0 +1,23 @@
+-- AlterEnum
+ALTER TYPE "Rol" ADD VALUE 'MANTENIMIENTO';
+
+-- AlterEnum
+ALTER TYPE "ActividadTipo" ADD VALUE 'MANTENIMIENTO_TAREA_CREADA';
+ALTER TYPE "ActividadTipo" ADD VALUE 'MANTENIMIENTO_TAREA_RECLAMADA';
+ALTER TYPE "ActividadTipo" ADD VALUE 'MANTENIMIENTO_TAREA_FINALIZADA';
+ALTER TYPE "ActividadTipo" ADD VALUE 'MANTENIMIENTO_TAREA_LIBERADA';
+
+-- CreateEnum
+CREATE TYPE "TareaTipo" AS ENUM ('GENERAL', 'MANTENIMIENTO');
+
+-- CreateEnum
+CREATE TYPE "ContactoTarea" AS ENUM ('ARRENDATARIO', 'PROPIETARIO');
+
+-- AlterTable
+ALTER TABLE "tareas" ADD COLUMN "tipo" "TareaTipo" NOT NULL DEFAULT 'GENERAL';
+
+-- AlterTable
+ALTER TABLE "tareas" ADD COLUMN "contacto" "ContactoTarea";
+
+-- CreateIndex
+CREATE INDEX "tareas_tipo_idx" ON "tareas" ("tipo");
