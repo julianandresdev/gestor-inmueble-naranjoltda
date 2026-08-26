@@ -36,8 +36,6 @@ function PasswordField({
   onChange,
   placeholder,
   disabled,
-  showPassword,
-  onToggleShow,
   error,
 }: {
   id: string;
@@ -46,10 +44,9 @@ function PasswordField({
   onChange: (v: string) => void;
   placeholder?: string;
   disabled?: boolean;
-  showPassword: boolean;
-  onToggleShow: () => void;
   error?: string;
 }) {
+  const [visible, setVisible] = useState(false);
   return (
     <div className="flex flex-col gap-2">
       <Label htmlFor={id}>Contraseña</Label>
@@ -57,7 +54,7 @@ function PasswordField({
         <Input
           id={id}
           name={name}
-          type={showPassword ? "text" : "password"}
+          type={visible ? "text" : "password"}
           autoComplete="new-password"
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -67,15 +64,13 @@ function PasswordField({
         />
         <button
           type="button"
-          onClick={onToggleShow}
-          aria-label={
-            showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
-          }
-          aria-pressed={showPassword}
+          onClick={() => setVisible((v) => !v)}
+          aria-label={visible ? "Ocultar contraseña" : "Mostrar contraseña"}
+          aria-pressed={visible}
           disabled={disabled}
           className="absolute inset-y-0 right-0 flex items-center justify-center px-3 text-muted-foreground hover:text-foreground disabled:opacity-50"
         >
-          {showPassword ? (
+          {visible ? (
             <EyeOff className="h-4 w-4" aria-hidden="true" />
           ) : (
             <Eye className="h-4 w-4" aria-hidden="true" />
@@ -106,7 +101,6 @@ function UsuarioForm({
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const passwordsMismatch =
     confirmPassword.length > 0 && password !== confirmPassword;
 
@@ -167,8 +161,6 @@ function UsuarioForm({
             onChange={setPassword}
             placeholder="Mínimo 8 caracteres"
             disabled={pending}
-            showPassword={showPassword}
-            onToggleShow={() => setShowPassword((v) => !v)}
             error={state.fieldErrors?.password}
           />
           <PasswordField
@@ -178,8 +170,6 @@ function UsuarioForm({
             onChange={setConfirmPassword}
             placeholder="Repite la contraseña"
             disabled={pending}
-            showPassword={showPassword}
-            onToggleShow={() => setShowPassword((v) => !v)}
             error={
               state.fieldErrors?.confirmPassword ??
               (passwordsMismatch ? "Las contraseñas no coinciden" : undefined)
