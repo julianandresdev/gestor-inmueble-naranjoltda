@@ -13,12 +13,11 @@ export async function AppNav() {
 
   return (
     <header className="w-full border-b bg-background">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4">
-        <div className="flex items-center gap-4">
-          <Link href={isMantenimiento ? "/mantenimiento" : "/dashboard"} className="flex items-center gap-2">
-            <Image src="/logo.png" alt="Naranjo Ltda." width={32} height={32} className="h-8 w-auto" priority />
-          </Link>
-          <nav className="flex items-center gap-1 text-sm">
+      <div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4">
+        <Link href={isMantenimiento ? "/mantenimiento" : "/dashboard"} className="flex shrink-0 items-center gap-2">
+          <Image src="/logo.png" alt="Naranjo Ltda." width={32} height={32} className="h-8 w-auto" priority />
+        </Link>
+        <nav className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto text-sm">
             {!isMantenimiento && (
               <Link
                 href="/dashboard"
@@ -90,8 +89,7 @@ export async function AppNav() {
               Perfil
             </Link>
           </nav>
-        </div>
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-3">
           <span className="hidden text-xs text-muted-foreground sm:inline">
             {user.name} · {user.role}
           </span>
