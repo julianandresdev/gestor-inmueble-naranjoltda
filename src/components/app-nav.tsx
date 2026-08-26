@@ -57,6 +57,12 @@ export async function AppNav() {
                 Usuarios
               </Link>
             )}
+            <Link
+              href="/perfil"
+              className="rounded px-2 py-1 hover:bg-muted"
+            >
+              Perfil
+            </Link>
           </nav>
         </div>
         <div className="flex items-center gap-3">

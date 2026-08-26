@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { mockRequireAdmin, mockPrisma } = vi.hoisted(() => ({
+const {
+  mockRequireAdmin,
+  mockPrisma,
+  mockWithTransaction,
+  mockRegistrarActividad,
+} = vi.hoisted(() => ({
   mockRequireAdmin: vi.fn(),
   mockPrisma: {
     usuario: {
@@ -10,15 +15,22 @@ const { mockRequireAdmin, mockPrisma } = vi.hoisted(() => ({
       update: vi.fn(),
     },
   },
+  mockWithTransaction: vi.fn(),
+  mockRegistrarActividad: vi.fn(),
 }));
 
 vi.mock("@/lib/dal", () => ({ requireAdmin: mockRequireAdmin }));
 vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }));
+vi.mock("@/lib/audit", () => ({
+  withTransaction: mockWithTransaction,
+  registrarActividad: mockRegistrarActividad,
+}));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 import {
   crearUsuario,
   editarUsuario,
+  adminCambiarContrasenaUsuario,
 } from "@/app/administracion/usuarios/actions";
 
 const ADMIN = { id: "admin1", name: "Admin", role: "ADMIN" };
@@ -26,6 +38,9 @@ const ADMIN = { id: "admin1", name: "Admin", role: "ADMIN" };
 beforeEach(() => {
   vi.clearAllMocks();
   mockRequireAdmin.mockResolvedValue(ADMIN);
+  mockWithTransaction.mockImplementation(
+    async (fn: (tx: typeof mockPrisma) => Promise<unknown>) => fn(mockPrisma)
+  );
 });
 
 describe("administracion/usuarios/actions — crearUsuario", () => {
@@ -133,5 +148,123 @@ describe("administracion/usuarios/actions — editarUsuario", () => {
     const res = await editarUsuario({}, fd);
     expect(res.fieldErrors?.username).toBe("Usuario en uso");
     expect(mockPrisma.usuario.update).not.toHaveBeenCalled();
+  });
+});
+
+describe("administracion/usuarios/actions — adminCambiarContrasenaUsuario", () => {
+  it("ADMIN resetea contraseña de un ASESOR", async () => {
+    mockPrisma.usuario.findUnique.mockResolvedValue({
+      id: "asesor1",
+      username: "asesor1",
+      rol: "ASESOR",
+    });
+    mockPrisma.usuario.update.mockResolvedValue({});
+
+    const fd = new FormData();
+    fd.set("id", "asesor1");
+    fd.set("newPassword", "secreto123");
+    fd.set("confirmPassword", "secreto123");
+
+    const res = await adminCambiarContrasenaUsuario({}, fd);
+    expect(res).toEqual({ ok: true });
+
+    const call = mockPrisma.usuario.update.mock.calls[0][0];
+    expect(call.where).toEqual({ id: "asesor1" });
+    expect(call.data.passwordHash).not.toContain("secreto123");
+    expect(call.data.passwordHash.length).toBeGreaterThan(20);
+    expect(call.data.sessionVersion).toEqual({ increment: 1 });
+
+    expect(mockRegistrarActividad).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tipo: "USUARIO_PASSWORD_RESETEADO",
+        entidad: "USUARIO",
+        entidadId: "asesor1",
+        userId: ADMIN.id,
+      })
+    );
+  });
+
+  it("ADMIN puede resetear su propia contraseña", async () => {
+    mockPrisma.usuario.findUnique.mockResolvedValue({
+      id: ADMIN.id,
+      username: "admin",
+      rol: "ADMIN",
+    });
+    mockPrisma.usuario.update.mockResolvedValue({});
+
+    const fd = new FormData();
+    fd.set("id", ADMIN.id);
+    fd.set("newPassword", "secreto123");
+    fd.set("confirmPassword", "secreto123");
+
+    const res = await adminCambiarContrasenaUsuario({}, fd);
+    expect(res).toEqual({ ok: true });
+  });
+
+  it("ADMIN NO puede resetear la contraseña de OTRO ADMIN", async () => {
+    mockPrisma.usuario.findUnique.mockResolvedValue({
+      id: "admin2",
+      username: "otroadmin",
+      rol: "ADMIN",
+    });
+
+    const fd = new FormData();
+    fd.set("id", "admin2");
+    fd.set("newPassword", "secreto123");
+    fd.set("confirmPassword", "secreto123");
+
+    const res = await adminCambiarContrasenaUsuario({}, fd);
+    expect(res.error).toBe(
+      "No puedes cambiar la contraseña de otro administrador"
+    );
+    expect(mockPrisma.usuario.update).not.toHaveBeenCalled();
+  });
+
+  it("rechaza contraseñas que no coinciden", async () => {
+    mockPrisma.usuario.findUnique.mockResolvedValue({
+      id: "asesor1",
+      username: "asesor1",
+      rol: "ASESOR",
+    });
+
+    const fd = new FormData();
+    fd.set("id", "asesor1");
+    fd.set("newPassword", "secreto123");
+    fd.set("confirmPassword", "distinto");
+
+    const res = await adminCambiarContrasenaUsuario({}, fd);
+    expect(res.fieldErrors?.confirmPassword).toBe(
+      "Las contraseñas no coinciden"
+    );
+    expect(mockPrisma.usuario.update).not.toHaveBeenCalled();
+  });
+
+  it("rechaza contraseñas demasiado cortas", async () => {
+    mockPrisma.usuario.findUnique.mockResolvedValue({
+      id: "asesor1",
+      username: "asesor1",
+      rol: "ASESOR",
+    });
+
+    const fd = new FormData();
+    fd.set("id", "asesor1");
+    fd.set("newPassword", "123");
+    fd.set("confirmPassword", "123");
+
+    const res = await adminCambiarContrasenaUsuario({}, fd);
+    expect(res.error).toBeDefined();
+    expect(mockPrisma.usuario.update).not.toHaveBeenCalled();
+  });
+
+  it("rechaza si el usuario no existe", async () => {
+    mockPrisma.usuario.findUnique.mockResolvedValue(null);
+
+    const fd = new FormData();
+    fd.set("id", "missing");
+    fd.set("newPassword", "secreto123");
+    fd.set("confirmPassword", "secreto123");
+
+    const res = await adminCambiarContrasenaUsuario({}, fd);
+    expect(res.error).toBe("Usuario no encontrado");
   });
 });

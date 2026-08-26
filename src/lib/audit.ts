@@ -73,6 +73,8 @@ export const ACTIVIDAD_LABELS: Record<string, string> = {
   SOPORTE_CANCELADO: "Ticket cancelado",
   SOPORTE_COMENTADO: "Ticket comentado",
   SOPORTE_PRIORIDAD: "Prioridad cambiada",
+  USUARIO_PASSWORD_CAMBIADO: "Contraseña actualizada",
+  USUARIO_PASSWORD_RESETEADO: "Contraseña reseteada por admin",
 };
 
 export const ACTIVIDAD_PREFIX: Record<string, string> = {
@@ -92,6 +94,8 @@ export const ACTIVIDAD_PREFIX: Record<string, string> = {
   SOPORTE_CANCELADO: "✕",
   SOPORTE_COMENTADO: "💬",
   SOPORTE_PRIORIDAD: "⚑",
+  USUARIO_PASSWORD_CAMBIADO: "🔑",
+  USUARIO_PASSWORD_RESETEADO: "🔑",
 };
 
 type RegistrarArgs = {
@@ -112,8 +116,10 @@ type RegistrarArgs = {
     | "SOPORTE_CERRADO"
     | "SOPORTE_CANCELADO"
     | "SOPORTE_COMENTADO"
-    | "SOPORTE_PRIORIDAD";
-  entidad: "INMUEBLE" | "NOTA" | "TAREA" | "SOPORTE";
+    | "SOPORTE_PRIORIDAD"
+    | "USUARIO_PASSWORD_CAMBIADO"
+    | "USUARIO_PASSWORD_RESETEADO";
+  entidad: "INMUEBLE" | "NOTA" | "TAREA" | "SOPORTE" | "USUARIO";
   entidadId: string;
   userId: string;
   context?: string | null;

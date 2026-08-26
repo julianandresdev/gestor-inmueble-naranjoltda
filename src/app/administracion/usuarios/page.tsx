@@ -12,12 +12,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { UsuarioFormDialog } from "./usuario-form-dialog";
 import { CambiarEstadoButton } from "./cambiar-estado-button";
+import { CambiarContrasenaDialog } from "./cambiar-contrasena-dialog";
 import { LogoutForm } from "@/components/logout-form";
 
 export default async function UsuariosPage() {
   const current = await requireAdmin();
   const usuarios = await listUsuarios();
   const currentUserId = current.id;
+  const currentIsAdmin = current.role === "ADMIN";
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-6 px-4 py-10">
@@ -86,6 +88,24 @@ export default async function UsuariosPage() {
                     usuario={u}
                     rolBloqueado={u.id === currentUserId}
                     trigger={<Button size="sm" variant="ghost">Editar</Button>}
+                  />
+                  <CambiarContrasenaDialog
+                    usuarioId={u.id}
+                    usuarioNombre={u.nombre}
+                    trigger={
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={currentIsAdmin && u.rol === "ADMIN" && u.id !== currentUserId}
+                        title={
+                          currentIsAdmin && u.rol === "ADMIN" && u.id !== currentUserId
+                            ? "No puedes cambiar la contraseña de otro administrador"
+                            : undefined
+                        }
+                      >
+                        Contraseña
+                      </Button>
+                    }
                   />
                   <CambiarEstadoButton usuario={u} esSelf={u.id === currentUserId} />
                 </TableCell>

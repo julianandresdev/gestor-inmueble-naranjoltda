@@ -3,6 +3,7 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/dal";
+import { registrarActividad, withTransaction } from "@/lib/audit";
 import { z } from "zod";
 
 const baseFields = {
@@ -36,7 +37,24 @@ const estadoSchema = z.object({
   estado: z.enum(["ACTIVO", "INACTIVO"]),
 });
 
+const cambiarContrasenaSchema = z
+  .object({
+    id: z.string().min(1, "ID inválido"),
+    newPassword: z.string().min(8, "Mínimo 8 caracteres"),
+    confirmPassword: z.string().min(8, "Mínimo 8 caracteres"),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Las contraseñas no coinciden",
+    path: ["confirmPassword"],
+  });
+
 export type UserFormState = {
+  error?: string;
+  fieldErrors?: Record<string, string>;
+  ok?: boolean;
+};
+
+export type CambiarContrasenaState = {
   error?: string;
   fieldErrors?: Record<string, string>;
   ok?: boolean;
@@ -194,6 +212,64 @@ export async function cambiarEstadoUsuario(
       estado: parsed.data.estado,
       sessionVersion: { increment: 1 },
     },
+  });
+
+  return { ok: true };
+}
+
+export async function adminCambiarContrasenaUsuario(
+  _prev: CambiarContrasenaState,
+  formData: FormData
+): Promise<CambiarContrasenaState> {
+  const current = await requireAdmin();
+
+  const targetId = String(formData.get("id") ?? "");
+  if (!targetId) return { error: "ID inválido" };
+
+  const target = await prisma.usuario.findUnique({
+    where: { id: targetId },
+    select: { id: true, username: true, rol: true },
+  });
+  if (!target) return { error: "Usuario no encontrado" };
+
+  if (target.rol === "ADMIN" && target.id !== current.id) {
+    return {
+      error: "No puedes cambiar la contraseña de otro administrador",
+    };
+  }
+
+  const parsed = cambiarContrasenaSchema.safeParse({
+    id: targetId,
+    newPassword: formData.get("newPassword"),
+    confirmPassword: formData.get("confirmPassword"),
+  });
+
+  if (!parsed.success) {
+    return {
+      error: "Revisa los campos",
+      fieldErrors: Object.fromEntries(
+        Object.entries(parsed.error.flatten().fieldErrors).map(
+          ([k, v]) => [k, (v as string[] | undefined)?.[0] ?? ""]
+        )
+      ),
+    };
+  }
+
+  const passwordHash = await bcrypt.hash(parsed.data.newPassword, 10);
+
+  await withTransaction(async (tx) => {
+    await tx.usuario.update({
+      where: { id: targetId },
+      data: { passwordHash, sessionVersion: { increment: 1 } },
+    });
+    await registrarActividad({
+      tx,
+      tipo: "USUARIO_PASSWORD_RESETEADO",
+      entidad: "USUARIO",
+      entidadId: targetId,
+      userId: current.id,
+      context: `Contraseña reseteada por admin para ${target.username}`,
+    });
   });
 
   return { ok: true };
