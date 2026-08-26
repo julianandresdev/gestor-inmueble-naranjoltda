@@ -12,6 +12,7 @@ import {
   TICKET_PRIORIDAD_LABEL,
   TICKET_PRIORIDAD_VARIANT,
 } from "@/lib/soporte-utils";
+import { formatDateTime } from "@/lib/format";
 import { ActividadTimeline } from "@/components/actividad-timeline";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -73,7 +74,7 @@ export default async function SoporteDetallePage({
           </div>
           <p className="text-sm text-muted-foreground">
             Creado por {ticket.creadoPor.nombre} el{" "}
-            {ticket.createdAt.toLocaleString()}
+            {formatDateTime(ticket.createdAt)}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -103,10 +104,10 @@ export default async function SoporteDetallePage({
           </CardHeader>
           <CardContent className="grid grid-cols-2 gap-4">
             <Detalle label="Autor" value={ticket.creadoPor.nombre} />
-            <Detalle label="Creado" value={ticket.createdAt.toLocaleString()} />
+            <Detalle label="Creado" value={formatDateTime(ticket.createdAt)} />
             <Detalle
               label="Resuelto"
-              value={ticket.resolvedAt?.toLocaleString() ?? null}
+              value={ticket.resolvedAt ? formatDateTime(ticket.resolvedAt) : null}
             />
             <Detalle
               label="Cerrado por"
@@ -114,7 +115,7 @@ export default async function SoporteDetallePage({
             />
             <Detalle
               label="Actualizado"
-              value={ticket.updatedAt.toLocaleString()}
+              value={formatDateTime(ticket.updatedAt)}
             />
           </CardContent>
         </Card>
@@ -138,7 +139,7 @@ export default async function SoporteDetallePage({
                     <div className="flex items-center justify-between gap-2 text-sm">
                       <span className="font-medium">{m.autor.nombre}</span>
                       <span className="text-xs text-muted-foreground">
-                        {m.createdAt.toLocaleString()}
+                        {formatDateTime(m.createdAt)}
                       </span>
                     </div>
                     <p className="whitespace-pre-wrap text-sm">{m.contenido}</p>

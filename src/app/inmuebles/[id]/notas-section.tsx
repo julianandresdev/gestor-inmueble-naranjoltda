@@ -1,4 +1,5 @@
 import { listarNotas } from "@/lib/dal";
+import { formatDateTime } from "@/lib/format";
 import { NuevaNotaForm } from "./nueva-nota-form";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -43,7 +44,7 @@ export async function NotasSection({
                 <div className="flex items-center justify-between gap-2">
                   <Badge variant="secondary">{nota.autor.nombre}</Badge>
                   <span className="text-xs text-muted-foreground">
-                    {nota.createdAt.toLocaleString()}
+                    {formatDateTime(nota.createdAt)}
                   </span>
                 </div>
                 <p className="whitespace-pre-wrap text-sm">{nota.contenido}</p>

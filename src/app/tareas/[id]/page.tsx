@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getTarea, requireAuth } from "@/lib/dal";
 import { listarActividadTarea } from "@/lib/audit";
 import { ESTADO_LABEL, esVencida } from "@/lib/tarea-utils";
+import { formatDate, formatDateTime } from "@/lib/format";
 import { TareaAcciones } from "../tarea-acciones";
 import { ActividadTimeline } from "@/components/actividad-timeline";
 import { Badge } from "@/components/ui/badge";
@@ -57,7 +58,7 @@ export default async function TareaDetallePage({
           </div>
           <p className="text-sm text-muted-foreground">
             Creada por {tarea.creadoPor.nombre} el{" "}
-            {tarea.createdAt.toLocaleString()}
+{formatDateTime(tarea.createdAt)}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -101,7 +102,7 @@ export default async function TareaDetallePage({
             <Detalle label="Fecha límite" value={
               tarea.fechaLimite ? (
                 <span className={vencida ? "text-destructive" : ""}>
-                  {tarea.fechaLimite.toLocaleString()}
+                  {formatDate(tarea.fechaLimite)}
                 </span>
               ) : null
             } />
@@ -118,10 +119,12 @@ export default async function TareaDetallePage({
               label="Responsable"
               value={tarea.asignadaA?.nombre ?? "Sin asignar"}
             />
-            <Detalle label="Creada" value={tarea.createdAt.toLocaleString()} />
+            <Detalle label="Creada" value={formatDateTime(tarea.createdAt)} />
             <Detalle
               label="Completada"
-              value={tarea.completedAt?.toLocaleString() ?? null}
+              value={
+                tarea.completedAt ? formatDateTime(tarea.completedAt) : null
+              }
             />
           </CardContent>
         </Card>

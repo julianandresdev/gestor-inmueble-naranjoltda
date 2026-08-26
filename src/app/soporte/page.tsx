@@ -7,6 +7,7 @@ import {
   TICKET_PRIORIDAD_LABEL,
   TICKET_PRIORIDAD_VARIANT,
 } from "@/lib/soporte-utils";
+import { formatDateTime } from "@/lib/format";
 import {
   Table,
   TableBody,
@@ -125,9 +126,9 @@ export default async function SoportePage({
                   </Badge>
                 </TableCell>
                 <TableCell>{t.creadoPor.nombre}</TableCell>
-                <TableCell className="text-xs text-muted-foreground">
-                  {t.updatedAt.toLocaleString()}
-                </TableCell>
+<TableCell className="text-xs text-muted-foreground">
+                    {formatDateTime(t.updatedAt)}
+                  </TableCell>
                 <TableCell className="text-right">
                   <Button
                     size="sm"

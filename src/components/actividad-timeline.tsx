@@ -3,6 +3,7 @@ import {
   ACTIVIDAD_PREFIX,
   type ActividadItem,
 } from "@/lib/audit";
+import { formatDateTime } from "@/lib/format";
 import {
   Card,
   CardContent,
@@ -51,7 +52,7 @@ export function ActividadTimeline({
                 </div>
                 <div className="flex flex-col items-end gap-0.5 text-xs text-muted-foreground">
                   <span>{a.user}</span>
-                  <span>{a.createdAt.toLocaleString()}</span>
+                  <span>{formatDateTime(a.createdAt)}</span>
                 </div>
               </li>
             ))}

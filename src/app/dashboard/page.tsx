@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { getDashboardData } from "@/lib/dal";
 import { listarActividadReciente, ACTIVIDAD_LABELS } from "@/lib/audit";
 import { esVencida, ESTADO_LABEL } from "@/lib/tarea-utils";
+import { formatDateTime } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -238,7 +239,7 @@ export default async function DashboardPage() {
                       </span>
                     </div>
                     <span className="text-xs text-muted-foreground">
-                      {a.createdAt.toLocaleString()}
+                      {formatDateTime(a.createdAt)}
                     </span>
                   </li>
                 ))}

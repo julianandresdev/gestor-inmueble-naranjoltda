@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getInmueble, requireAuth } from "@/lib/dal";
 import { listarActividadInmueble } from "@/lib/audit";
 import { auth } from "@/auth";
+import { formatDateTime } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -166,7 +167,7 @@ export default async function InmuebleDetallePage({
           />
           <Detalle
             label="Fecha creación"
-            value={inmueble.createdAt.toLocaleString()}
+            value={formatDateTime(inmueble.createdAt)}
           />
           <Detalle
             label="Modificado por"
@@ -174,7 +175,7 @@ export default async function InmuebleDetallePage({
           />
           <Detalle
             label="Última modificación"
-            value={inmueble.updatedAt.toLocaleString()}
+            value={formatDateTime(inmueble.updatedAt)}
           />
         </CardContent>
       </Card>

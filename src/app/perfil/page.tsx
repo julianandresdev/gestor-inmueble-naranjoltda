@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireAuth } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
+import { formatDateTime } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -101,13 +102,13 @@ export default async function PerfilPage() {
             <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Creado
             </dt>
-            <dd className="text-sm">{user.createdAt.toLocaleString()}</dd>
+            <dd className="text-sm">{formatDateTime(user.createdAt)}</dd>
           </div>
           <div className="flex flex-col gap-0.5">
             <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Actualizado
             </dt>
-            <dd className="text-sm">{user.updatedAt.toLocaleString()}</dd>
+            <dd className="text-sm">{formatDateTime(user.updatedAt)}</dd>
           </div>
         </CardContent>
       </Card>

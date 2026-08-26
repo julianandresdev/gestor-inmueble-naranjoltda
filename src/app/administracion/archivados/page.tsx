@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireAdmin, listInmueblesArchivados } from "@/lib/dal";
 import { RestaurarInmuebleButton } from "../../inmuebles/restaurar-button";
 import { Button } from "@/components/ui/button";
+import { formatDateTime } from "@/lib/format";
 import {
   Table,
   TableBody,
@@ -73,7 +74,7 @@ export default async function ArchivadosPage() {
                 <TableCell>{i.tipoInmueble ?? "—"}</TableCell>
                 <TableCell>
                   <div className="flex flex-col">
-                    <span>{i.updatedAt.toLocaleString()}</span>
+                    <span>{formatDateTime(i.updatedAt)}</span>
                     <span className="text-xs text-muted-foreground">
                       {i.modificadoPor.nombre}
                     </span>
