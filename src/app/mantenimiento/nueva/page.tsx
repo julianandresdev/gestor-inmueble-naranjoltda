@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { requireAuth, listOpcionesInmuebles } from "@/lib/dal";
 import { Button } from "@/components/ui/button";
 import { CrearMantenimientoForm } from "./crear-mantenimiento-form";
-import { revalidatePath } from "next/cache";
 
 export default async function NuevaMantenimientoPage() {
   const user = await requireAuth();
@@ -32,10 +31,7 @@ export default async function NuevaMantenimientoPage() {
         </Button>
       </header>
 
-      <CrearMantenimientoForm
-        inmuebles={opcionesInmueble}
-        revalidate={() => revalidatePath("/mantenimiento")}
-      />
+      <CrearMantenimientoForm inmuebles={opcionesInmueble} />
     </main>
   );
 }

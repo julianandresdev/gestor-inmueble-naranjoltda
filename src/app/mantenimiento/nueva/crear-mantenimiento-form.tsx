@@ -30,7 +30,6 @@ export function CrearMantenimientoForm({
   inmuebles,
 }: {
   inmuebles: { id: string; noInm: string; direccion: string | null }[];
-  revalidate: () => void;
 }) {
   const router = useRouter();
   const [inmuebleId, setInmuebleId] = useState("");
