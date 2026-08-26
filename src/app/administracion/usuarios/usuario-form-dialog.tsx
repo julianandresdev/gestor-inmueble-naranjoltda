@@ -140,6 +140,7 @@ function UsuarioForm({
           <SelectContent>
             <SelectItem value="ASESOR">Asesor</SelectItem>
             <SelectItem value="ADMIN">Administrador</SelectItem>
+            <SelectItem value="MANTENIMIENTO">Mantenimiento</SelectItem>
           </SelectContent>
         </Select>
         {state.fieldErrors?.rol && (

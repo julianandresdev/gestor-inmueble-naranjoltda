@@ -20,7 +20,7 @@ const createSchema = z
     ...baseFields,
     password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
     confirmPassword: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
-    rol: z.enum(["ADMIN", "ASESOR"]),
+    rol: z.enum(["ADMIN", "ASESOR", "MANTENIMIENTO"]),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Las contraseñas no coinciden",
@@ -29,7 +29,7 @@ const createSchema = z
 
 const updateSchema = z.object({
   ...baseFields,
-  rol: z.enum(["ADMIN", "ASESOR"]),
+  rol: z.enum(["ADMIN", "ASESOR", "MANTENIMIENTO"]),
 });
 
 const estadoSchema = z.object({
