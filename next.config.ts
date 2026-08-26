@@ -16,9 +16,10 @@ const cspHeader = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
-  // Para acceder al dev server desde otra IP de tu LAN (p. ej. 192.168.1.10),
-  // añade el origen aquí:
-  // allowedDevOrigins: ["192.168.1.10", "http://192.168.1.10:3000"],
+  // Acceso al dev server desde el móvil vía IP de LAN.
+  // '192.168.*.*' permite cualquier dispositivo de la subred 192.168.x.x
+  // (robusto ante cambios de IP por DHCP). Ajusta si tu LAN usa otra subred.
+  allowedDevOrigins: ["192.168.*.*"],
   poweredByHeader: false,
   async headers() {
     return [
