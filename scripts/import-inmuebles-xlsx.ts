@@ -76,8 +76,12 @@ async function main() {
     observaciones: toStr(r["Observaciones"]),
   }));
 
+  const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL;
+  if (!connectionString) {
+    throw new Error("DATABASE_URL ni POSTGRES_URL están definidas.");
+  }
   const prisma = new PrismaClient({
-    adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }),
+    adapter: new PrismaPg({ connectionString }),
   });
 
   const admin = await prisma.usuario.findFirst({

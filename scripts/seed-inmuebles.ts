@@ -5,7 +5,9 @@ import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 async function main() {
-  const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
+  const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL;
+  if (!connectionString) throw new Error("DATABASE_URL ni POSTGRES_URL están definidas.");
+  const adapter = new PrismaPg({ connectionString });
   const prisma = new PrismaClient({ adapter });
   const admin = await prisma.usuario.findFirst({ where: { username: "admin" } });
   if (!admin) throw new Error("Admin no existe");

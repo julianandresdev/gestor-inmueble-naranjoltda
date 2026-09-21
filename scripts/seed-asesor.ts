@@ -6,9 +6,9 @@ import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 async function main() {
-  const connectionString = process.env.DATABASE_URL;
+  const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL;
   if (!connectionString) {
-    throw new Error("DATABASE_URL no está definida.");
+    throw new Error("DATABASE_URL ni POSTGRES_URL están definidas.");
   }
 
   const password = process.env.ASESOR_PASSWORD;

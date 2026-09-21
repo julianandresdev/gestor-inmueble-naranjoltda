@@ -15,8 +15,10 @@ function loadDotEnv() {
 
 loadDotEnv();
 
-const required = ["DATABASE_URL", "AUTH_SECRET"];
-const missing = required.filter((name) => !process.env[name]?.trim());
+const hasDb = Boolean(process.env.POSTGRES_URL?.trim() || process.env.DATABASE_URL?.trim());
+const missing = [];
+if (!hasDb) missing.push("DATABASE_URL (o POSTGRES_URL)");
+if (!process.env.AUTH_SECRET?.trim()) missing.push("AUTH_SECRET");
 
 if (missing.length > 0) {
   console.error(`Faltan variables requeridas: ${missing.join(", ")}`);

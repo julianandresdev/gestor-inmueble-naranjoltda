@@ -22,9 +22,9 @@ async function main() {
     process.exit(1);
   }
 
-  const connectionString = process.env.DATABASE_URL;
+  const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL;
   if (!connectionString) {
-    console.error("DATABASE_URL no está definida.");
+    console.error("DATABASE_URL ni POSTGRES_URL están definidas.");
     process.exit(1);
   }
 

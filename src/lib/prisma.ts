@@ -1,5 +1,6 @@
 import { PrismaClient } from "@/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { Pool } from "pg";
 import { AsyncLocalStorage } from "node:async_hooks";
 
 export class InmutableAuditError extends Error {
@@ -34,16 +35,24 @@ const blockedOperations = new Set([
 
 function getBaseClient(): PrismaClient {
   const connectionString =
+    process.env.POSTGRES_URL ||
+    process.env.POSTGRES_PRISMA_URL ||
     process.env.DATABASE_URL ||
     (process.env.NODE_ENV === "test"
       ? "postgresql://test:test@localhost:5432/test"
       : "");
   if (!connectionString) {
     throw new Error(
-      "DATABASE_URL no está definida. Configúrala en tu archivo .env"
+      "No se encontró la variable de conexión a la base de datos (POSTGRES_URL o DATABASE_URL). Configúrala en tu entorno o archivo .env"
     );
   }
-  const adapter = new PrismaPg({ connectionString });
+  const pool = new Pool({
+    connectionString,
+    max: process.env.NODE_ENV === "production" ? 4 : 10,
+    idleTimeoutMillis: 15000,
+    connectionTimeoutMillis: 5000,
+  });
+  const adapter = new PrismaPg(pool);
   return new PrismaClient({
     adapter,
     log:
