@@ -7,6 +7,8 @@ import Link from "next/link";
 import { Toaster } from "sonner";
 import "./globals.css";
 import { AppNav } from "@/components/app-nav";
+import { auth } from "@/auth";
+import { PresenceHeartbeat } from "@/components/presence-heartbeat";
 
 export const metadata: Metadata = {
   title: "Gestion Inmueble Naranjo",
@@ -24,13 +26,15 @@ const themeScript = `(function() {
   } catch (e) {}
 })();`;
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const session = await auth();
   return (
     <html lang="es" className="h-full antialiased" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="min-h-full flex flex-col">
+        <PresenceHeartbeat isLoggedIn={Boolean(session?.user)} />
         <AppNav />
         <div className="flex-1">{children}</div>
         <footer className="border-t py-4">

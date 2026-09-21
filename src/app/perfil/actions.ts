@@ -7,6 +7,7 @@ import { signOut } from "@/auth";
 import { z } from "zod";
 import { requireAuth } from "@/lib/dal";
 import { registrarActividad, withTransaction } from "@/lib/audit";
+import { getClientInfoSafe } from "@/lib/client-info";
 
 const cambiarMiContrasenaSchema = z
   .object({
@@ -47,6 +48,7 @@ export async function cambiarMiContrasena(
   }
 
   const passwordHash = await bcrypt.hash(parsed.data.newPassword, 10);
+  const clientInfo = await getClientInfoSafe();
 
   await withTransaction(async (tx) => {
     await tx.usuario.update({
@@ -60,6 +62,11 @@ export async function cambiarMiContrasena(
       entidadId: user.id,
       userId: user.id,
       context: "Contraseña actualizada por el propio usuario",
+      cambios: {
+        passwordHash: { anterior: "[MODIFICADO]", nuevo: "[MODIFICADO]" },
+      },
+      ip: clientInfo?.ip,
+      dispositivo: clientInfo?.resumenDispositivo,
     });
   });
 

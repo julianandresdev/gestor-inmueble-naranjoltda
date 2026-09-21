@@ -4,7 +4,8 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, requirePermission } from "@/lib/dal";
-import { registrarActividad, withTransaction } from "@/lib/audit";
+import { registrarActividad, withTransaction, calcularCambiosAuditables } from "@/lib/audit";
+import { getClientInfoSafe } from "@/lib/client-info";
 import { z } from "zod";
 
 const camposBase = {
@@ -119,6 +120,7 @@ export async function crearInmueble(
   }
 
   let inmuebleId: string | null = null;
+  const clientInfo = await getClientInfoSafe();
   try {
     inmuebleId = await withTransaction(async (tx) => {
       const inmueble = await tx.inmueble.create({
@@ -136,6 +138,8 @@ export async function crearInmueble(
         userId: user.id,
         context: `No. Inm ${inmueble.noInm}`,
         inmuebleId: inmueble.id,
+        ip: clientInfo?.ip,
+        dispositivo: clientInfo?.resumenDispositivo,
       });
       return inmueble.id;
     });
@@ -165,7 +169,6 @@ export async function editarInmueble(
 
   const existente = await prisma.inmueble.findUnique({
     where: { id },
-    select: { id: true, estado: true, noInm: true },
   });
   if (!existente) return { error: "Inmueble no encontrado" };
   if (existente.estado !== "ACTIVO") {
@@ -182,6 +185,12 @@ export async function editarInmueble(
       fieldErrors: formatFieldErrors(parsed.error),
     };
   }
+
+  const clientInfo = await getClientInfoSafe();
+  const cambios = calcularCambiosAuditables(
+    existente as Record<string, unknown>,
+    parsed.data as Record<string, unknown>
+  );
 
   try {
     await withTransaction(async (tx) => {
@@ -200,6 +209,9 @@ export async function editarInmueble(
         userId: user.id,
         context: `No. Inm ${existente.noInm}`,
         inmuebleId: id,
+        cambios,
+        ip: clientInfo?.ip,
+        dispositivo: clientInfo?.resumenDispositivo,
       });
     });
   } catch {
@@ -246,6 +258,7 @@ export async function archivarInmueble(
     return { error: "El inmueble ya está archivado" };
   }
 
+  const clientInfo = await getClientInfoSafe();
   try {
     await withTransaction(async (tx) => {
       await tx.inmueble.update({
@@ -260,6 +273,11 @@ export async function archivarInmueble(
         userId: user.id,
         context: `No. Inm ${existente.noInm}`,
         inmuebleId: id,
+        cambios: {
+          estado: { antes: "ACTIVO", despues: "ARCHIVADO" },
+        },
+        ip: clientInfo?.ip,
+        dispositivo: clientInfo?.resumenDispositivo,
       });
     });
   } catch {
@@ -291,6 +309,7 @@ export async function restaurarInmueble(
     return { error: "El inmueble no está archivado" };
   }
 
+  const clientInfo = await getClientInfoSafe();
   try {
     await withTransaction(async (tx) => {
       await tx.inmueble.update({
@@ -305,6 +324,11 @@ export async function restaurarInmueble(
         userId: user.id,
         context: `No. Inm ${existente.noInm}`,
         inmuebleId: id,
+        cambios: {
+          estado: { antes: "ARCHIVADO", despues: "ACTIVO" },
+        },
+        ip: clientInfo?.ip,
+        dispositivo: clientInfo?.resumenDispositivo,
       });
     });
   } catch {

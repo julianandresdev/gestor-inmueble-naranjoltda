@@ -5,6 +5,33 @@ Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Panel de Administración, Métricas y Registro de Accesos (Auditoría Avanzada)
+- **Panel de Administración (`/administracion/panel`)**:
+  - Vista exclusiva para administradores con protección `requireAdmin()`, selector temporal (`Hoy`, `7 días`, `30 días`) y badge en vivo.
+  - **Banner de Alertas Críticas**: Detección automática de tareas vencidas (> 3 días), mantenimientos estancados (> 7 días sin actualización) e intentos fallidos de login repetidos (> 3 fallos en 24h).
+  - **Tarjetas KPI**: Resumen integral de inmuebles (activos vs archivados, captaciones del periodo), tareas (pendientes, vencidas, completadas), mantenimientos abiertos y sin asignar, soporte urgente y usuarios en línea.
+  - **Presencia en Tiempo Real**: Visualización de usuarios activos en vivo con indicador visual verde, rol, dispositivo, navegador, sistema operativo, IP real y ruta en la que están navegando.
+  - **Desglose de Productividad por Asesor**: Tabla con volumen total de acciones por miembro del equipo, última acción realizada y desglose por módulo.
+  - **Volumen de Actividad Diaria y por Módulo**: Gráficos SVG interactivos y barras proporcionales por módulo (Inmuebles, Tareas, Mantenimiento, Soporte, Usuarios).
+  - **Seguridad y Auditoría de Accesos**: Totales de accesos exitosos, fallidos y cierres de sesión; tabla detallada de intentos fallidos recientes con IP y geolocalización (Vercel Geo); detección de accesos fuera de horario laboral (noches y fines de semana); historial de eventos sensibles (cambios de contraseña, estado de usuarios, archivos de inmuebles).
+  - **Salud del Inventario**: Detección de inmuebles sin propietario, disponibles/sin arrendatario, desactualizados (> 90 días), y distribución por tipo y destinación.
+  - **Carga Operativa de Tareas**: Carga de tareas por responsable, matriz de prioridad (urgente vs importante) y tasa de cumplimiento a tiempo.
+  - **Mantenimiento y Soporte**: Antigüedad promedio de casos abiertos, distribución por prioridad y canal de contacto.
+- **Registro de Accesos (`RegistroAcceso`) y Presencia (`SesionPresencia`)**:
+  - Registro automático de eventos `LOGIN_EXITOSO`, `LOGIN_FALLIDO` (con motivo) y `LOGOUT`.
+  - Captura de IP real de cliente (primer salto de `x-forwarded-for` o `x-real-ip`), geolocalización Vercel (`x-vercel-ip-country`, `x-vercel-ip-city`) y análisis de agente de usuario vía `ua-parser-js`.
+  - Mecanismo de presencia en cliente (`PresenceHeartbeat`) con latido cada 60 segundos mientras la pestaña está visible.
+- **Enriquecimiento de Auditoría y Protección de Privacidad**:
+  - Inclusión de `ip`, `dispositivo` y `cambios` en la tabla `actividad`.
+  - Cálculo de diffs no destructivos con enmascaramiento estricto de contraseñas, tokens y datos personales de clientes (`[MODIFICADO]`, `[DATO_PERSONAL_RESERVADO]`).
+- **Inmutabilidad en 3 Capas y Política de Retención**:
+  - Capa de aplicación: Funciones en `lib/audit.ts` sólo de inserción.
+  - Capa de Prisma: Extensión `$extends` que bloquea `update`, `delete` y `upsert` en `actividad` y `registroAcceso` salvo contexto de purga.
+  - Capa de PostgreSQL: Triggers en base de datos (`trg_proteger_inmutabilidad_actividad`, `trg_proteger_inmutabilidad_registro_accesos`) que rechazan cualquier `UPDATE` o `DELETE` sin la variable local `app.allow_retention_purge = 'true'`.
+  - Endpoint de depuración programada `/api/cron/retencion` protegido por `CRON_SECRET` y configurado en `vercel.json` para ejecutarse diariamente.
+- **Pruebas y Cobertura**:
+  - 16 suites de prueba con 146 tests unitarios e integrados pasando al 100%, incluyendo pruebas de inmutabilidad en base de datos, control de acceso al panel DAL y seguridad del cron.
+
 ### Modo Oscuro (Dark Mode) y Experiencia de Usuario (UX)
 - Implementación de **Modo Oscuro** nativo con selector accesible (`ThemeToggle`) en cabecera principal, pantalla de login y páginas públicas.
 - Script anti-parpadeo (FOUC) síncrono en `<head>` de `RootLayout` y detección automática de preferencia de sistema (`prefers-color-scheme`) con persistencia en `localStorage`.

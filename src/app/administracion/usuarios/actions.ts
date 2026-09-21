@@ -3,7 +3,8 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/dal";
-import { registrarActividad, withTransaction } from "@/lib/audit";
+import { registrarActividad, withTransaction, calcularCambiosAuditables } from "@/lib/audit";
+import { getClientInfoSafe } from "@/lib/client-info";
 import { z } from "zod";
 
 const baseFields = {
@@ -73,7 +74,7 @@ export async function crearUsuario(
   _prev: UserFormState,
   formData: FormData
 ): Promise<UserFormState> {
-  await requireAdmin();
+  const current = await requireAdmin();
 
   const parsed = createSchema.safeParse({
     nombre: formData.get("nombre"),
@@ -111,9 +112,22 @@ export async function crearUsuario(
   const passwordHash = await bcrypt.hash(password, 10);
 
   try {
-    await prisma.usuario.create({
+    const info = await getClientInfoSafe();
+
+    const nuevo = await prisma.usuario.create({
       data: { ...data, passwordHash },
     });
+
+    await registrarActividad({
+      tipo: "USUARIO_CREADO",
+      entidad: "USUARIO",
+      entidadId: nuevo.id,
+      userId: current.id,
+      context: `Usuario creado: ${nuevo.username} (${nuevo.rol})`,
+      ip: info?.ip,
+      dispositivo: info?.resumenDispositivo,
+    });
+
     return { ok: true };
   } catch (e) {
     if (isUniqueConstraintError(e)) {
@@ -145,13 +159,15 @@ export async function editarUsuario(
     return {
       error: "Revisa los campos",
       fieldErrors: Object.fromEntries(
-        Object.entries(parsed.error.flatten().fieldErrors).map(
-          ([k, v]) => [k, (v as string[] | undefined)?.[0] ?? ""]
-        )
+        Object.entries(parsed.error.flatten().fieldErrors).map(([k, v]) => [
+          k,
+          (v as string[] | undefined)?.[0] ?? "",
+        ])
       ),
     };
   }
 
+  // Si el usuario es ADMIN editándose a sí mismo, no puede quitarse el rol ADMIN
   if (id === current.id && parsed.data.rol !== "ADMIN") {
     return {
       error: "No puedes cambiar tu propio rol",
@@ -170,11 +186,32 @@ export async function editarUsuario(
     };
   }
 
+  const antes = await prisma.usuario.findUnique({
+    where: { id },
+    select: { nombre: true, username: true, rol: true },
+  });
+
   try {
+    const info = await getClientInfoSafe();
+
     await prisma.usuario.update({
       where: { id },
       data: parsed.data,
     });
+
+    const cambios = antes ? calcularCambiosAuditables(antes, parsed.data) : null;
+
+    await registrarActividad({
+      tipo: "USUARIO_EDITADO",
+      entidad: "USUARIO",
+      entidadId: id,
+      userId: current.id,
+      context: `Usuario editado: ${parsed.data.username}`,
+      cambios,
+      ip: info?.ip,
+      dispositivo: info?.resumenDispositivo,
+    });
+
     return { ok: true };
   } catch (e) {
     if (isUniqueConstraintError(e)) {
@@ -206,12 +243,32 @@ export async function cambiarEstadoUsuario(
     return { error: "No puedes desactivar tu propia cuenta" };
   }
 
+  const antes = await prisma.usuario.findUnique({
+    where: { id: parsed.data.id },
+    select: { estado: true, username: true },
+  });
+
+  const info = await getClientInfoSafe();
+
   await prisma.usuario.update({
     where: { id: parsed.data.id },
     data: {
       estado: parsed.data.estado,
       sessionVersion: { increment: 1 },
     },
+  });
+
+  await registrarActividad({
+    tipo: "USUARIO_ESTADO_CAMBIADO",
+    entidad: "USUARIO",
+    entidadId: parsed.data.id,
+    userId: current.id,
+    context: `Estado de ${antes?.username ?? "usuario"} cambiado a ${parsed.data.estado}`,
+    cambios: antes
+      ? { estado: { anterior: antes.estado, nuevo: parsed.data.estado } }
+      : null,
+    ip: info?.ip,
+    dispositivo: info?.resumenDispositivo,
   });
 
   return { ok: true };
@@ -256,6 +313,7 @@ export async function adminCambiarContrasenaUsuario(
   }
 
   const passwordHash = await bcrypt.hash(parsed.data.newPassword, 10);
+  const info = await getClientInfoSafe();
 
   await withTransaction(async (tx) => {
     await tx.usuario.update({
@@ -269,6 +327,9 @@ export async function adminCambiarContrasenaUsuario(
       entidadId: targetId,
       userId: current.id,
       context: `Contraseña reseteada por admin para ${target.username}`,
+      cambios: { passwordHash: { anterior: "[MODIFICADO]", nuevo: "[MODIFICADO]" } },
+      ip: info?.ip,
+      dispositivo: info?.resumenDispositivo,
     });
   });
 

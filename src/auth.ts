@@ -13,6 +13,8 @@ import {
 } from "@/lib/rate-limit";
 import type { Rol, Estado } from "@/generated/prisma/client";
 import { canAccessPath, unauthorizedPath } from "@/lib/permissions";
+import { extractClientInfo } from "@/lib/client-info";
+import { registrarAcceso } from "@/lib/audit";
 
 const credentialsSchema = z.object({
   username: z.string().min(1, "El usuario es obligatorio"),
@@ -48,7 +50,8 @@ export const authConfig: NextAuthConfig = {
           request instanceof Request
             ? request.headers
             : new Headers();
-        const ip = getClientIp(headers);
+        const clientInfo = extractClientInfo(headers);
+        const ip = clientInfo.ip;
         const key = buildRateLimitKey(ip, username);
 
         const lock = checkLock(key);
@@ -57,6 +60,18 @@ export const authConfig: NextAuthConfig = {
             username,
             ip,
             retryAfterSec: lock.retryAfterSec,
+          });
+          await registrarAcceso({
+            username,
+            tipo: "LOGIN_FALLIDO",
+            motivo: "bloqueado_rate_limit",
+            ip,
+            dispositivo: clientInfo.dispositivo,
+            navegador: clientInfo.navegador,
+            sistemaOperativo: clientInfo.sistemaOperativo,
+            pais: clientInfo.pais,
+            ciudad: clientInfo.ciudad,
+            userAgent: clientInfo.userAgent,
           });
           return null;
         }
@@ -81,6 +96,18 @@ export const authConfig: NextAuthConfig = {
             ip,
             reason: "user_not_found",
           });
+          await registrarAcceso({
+            username,
+            tipo: "LOGIN_FALLIDO",
+            motivo: "usuario_no_encontrado",
+            ip,
+            dispositivo: clientInfo.dispositivo,
+            navegador: clientInfo.navegador,
+            sistemaOperativo: clientInfo.sistemaOperativo,
+            pais: clientInfo.pais,
+            ciudad: clientInfo.ciudad,
+            userAgent: clientInfo.userAgent,
+          });
           return null;
         }
         if (user.estado !== "ACTIVO" satisfies Estado) {
@@ -89,6 +116,19 @@ export const authConfig: NextAuthConfig = {
             username,
             ip,
             reason: "inactive",
+          });
+          await registrarAcceso({
+            userId: user.id,
+            username,
+            tipo: "LOGIN_FALLIDO",
+            motivo: "usuario_inactivo",
+            ip,
+            dispositivo: clientInfo.dispositivo,
+            navegador: clientInfo.navegador,
+            sistemaOperativo: clientInfo.sistemaOperativo,
+            pais: clientInfo.pais,
+            ciudad: clientInfo.ciudad,
+            userAgent: clientInfo.userAgent,
           });
           return null;
         }
@@ -101,10 +141,38 @@ export const authConfig: NextAuthConfig = {
             ip,
             reason: "bad_password",
           });
+          await registrarAcceso({
+            userId: user.id,
+            username,
+            tipo: "LOGIN_FALLIDO",
+            motivo: "contrasena_incorrecta",
+            ip,
+            dispositivo: clientInfo.dispositivo,
+            navegador: clientInfo.navegador,
+            sistemaOperativo: clientInfo.sistemaOperativo,
+            pais: clientInfo.pais,
+            ciudad: clientInfo.ciudad,
+            userAgent: clientInfo.userAgent,
+          });
           return null;
         }
 
         clearFailures(key);
+
+        await registrarAcceso({
+          userId: user.id,
+          username,
+          tipo: "LOGIN_EXITOSO",
+          motivo: "credenciales_validas",
+          ip,
+          dispositivo: clientInfo.dispositivo,
+          navegador: clientInfo.navegador,
+          sistemaOperativo: clientInfo.sistemaOperativo,
+          pais: clientInfo.pais,
+          ciudad: clientInfo.ciudad,
+          userAgent: clientInfo.userAgent,
+        });
+
         return {
           id: user.id,
           name: user.nombre,

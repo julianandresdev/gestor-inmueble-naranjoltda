@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requirePermission } from "@/lib/dal";
 import { registrarActividad, withTransaction } from "@/lib/audit";
+import { getClientInfoSafe } from "@/lib/client-info";
 import { z } from "zod";
 
 const APP_TZ = "America/Bogota";
@@ -137,6 +138,7 @@ export async function crearTarea(
   const fechaLimite = data.fechaLimite ? new Date(data.fechaLimite) : null;
 
   let tareaId: string | null = null;
+  const clientInfo = await getClientInfoSafe();
   try {
     tareaId = await withTransaction(async (tx) => {
       const tarea = await tx.tarea.create({
@@ -163,6 +165,8 @@ export async function crearTarea(
           : "Tarea general",
         inmuebleId: data.inmuebleId || null,
         tareaId: tarea.id,
+        ip: clientInfo?.ip,
+        dispositivo: clientInfo?.resumenDispositivo,
       });
       return tarea.id;
     });
@@ -197,6 +201,7 @@ export async function reclamarTarea(
   const id = String(formData.get("id") ?? "");
   if (!id) return { error: "ID inválido" };
 
+  const clientInfo = await getClientInfoSafe();
   try {
     await withTransaction(async (tx) => {
       const result = await tx.tarea.updateMany({
@@ -214,6 +219,11 @@ export async function reclamarTarea(
         userId: user.id,
         context: null,
         tareaId: id,
+        cambios: {
+          estado: { antes: "SIN_ASIGNAR", despues: "EN_PROGRESO" },
+        },
+        ip: clientInfo?.ip,
+        dispositivo: clientInfo?.resumenDispositivo,
       });
     });
   } catch (e) {
@@ -250,6 +260,7 @@ export async function liberarTarea(
     return { error: "No tienes permisos para liberar esta tarea" };
   }
 
+  const clientInfo = await getClientInfoSafe();
   try {
     await withTransaction(async (tx) => {
       const result = await tx.tarea.updateMany({
@@ -271,6 +282,11 @@ export async function liberarTarea(
         userId: user.id,
         context: null,
         tareaId: id,
+        cambios: {
+          estado: { antes: "EN_PROGRESO", despues: "SIN_ASIGNAR" },
+        },
+        ip: clientInfo?.ip,
+        dispositivo: clientInfo?.resumenDispositivo,
       });
     });
   } catch (e) {
@@ -307,6 +323,7 @@ export async function completarTarea(
     return { error: "No tienes permisos para completar esta tarea" };
   }
 
+  const clientInfo = await getClientInfoSafe();
   try {
     await withTransaction(async (tx) => {
       const result = await tx.tarea.updateMany({
@@ -328,6 +345,11 @@ export async function completarTarea(
         userId: user.id,
         context: null,
         tareaId: id,
+        cambios: {
+          estado: { antes: "EN_PROGRESO", despues: "COMPLETADA" },
+        },
+        ip: clientInfo?.ip,
+        dispositivo: clientInfo?.resumenDispositivo,
       });
     });
   } catch (e) {

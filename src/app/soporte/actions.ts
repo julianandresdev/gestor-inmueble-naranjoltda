@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, requirePermission } from "@/lib/dal";
 import { registrarActividad, withTransaction } from "@/lib/audit";
+import { getClientInfoSafe } from "@/lib/client-info";
 import { notifyTicket } from "@/lib/telegram";
 import type { TicketAccion } from "@/lib/telegram";
 import { z } from "zod";
@@ -139,6 +140,7 @@ export async function crearSoporteTicket(
   const prioridad: TicketPrioridad = data.prioridad ?? "NORMAL";
 
   let ticketId: string | null = null;
+  const clientInfo = await getClientInfoSafe();
   try {
     ticketId = await withTransaction(async (tx) => {
       const ticket = await tx.soporteTicket.create({
@@ -158,6 +160,8 @@ export async function crearSoporteTicket(
         userId: user.id,
         context: `Prioridad ${prioridad}`,
         soporteTicketId: ticket.id,
+        ip: clientInfo?.ip,
+        dispositivo: clientInfo?.resumenDispositivo,
       });
       return ticket.id;
     });
@@ -239,6 +243,7 @@ export async function cambiarEstadoSoporteTicket(
       ? "SOPORTE_CANCELADO"
       : "SOPORTE_CREADO";
 
+  const clientInfo = await getClientInfoSafe();
   try {
     await withTransaction(async (tx) => {
       await tx.soporteTicket.update({ where: { id }, data });
@@ -250,6 +255,11 @@ export async function cambiarEstadoSoporteTicket(
         userId: user.id,
         context: `${ticket.estado} → ${nuevoEstado}`,
         soporteTicketId: id,
+        cambios: {
+          estado: { anterior: ticket.estado, nuevo: nuevoEstado },
+        },
+        ip: clientInfo?.ip,
+        dispositivo: clientInfo?.resumenDispositivo,
       });
     });
   } catch {
@@ -300,6 +310,7 @@ export async function agregarMensajeSoporte(
     };
   }
 
+  const clientInfo = await getClientInfoSafe();
   try {
     await withTransaction(async (tx) => {
       await tx.soporteMensaje.create({
@@ -317,6 +328,8 @@ export async function agregarMensajeSoporte(
         userId: user.id,
         context: contenido.length > 80 ? `${contenido.slice(0, 77)}...` : contenido,
         soporteTicketId: id,
+        ip: clientInfo?.ip,
+        dispositivo: clientInfo?.resumenDispositivo,
       });
     });
   } catch {
@@ -367,6 +380,7 @@ export async function cambiarPrioridadSoporteTicket(
 
   const anterior = ticket.prioridad;
 
+  const clientInfo = await getClientInfoSafe();
   try {
     await withTransaction(async (tx) => {
       await tx.soporteTicket.update({
@@ -381,6 +395,11 @@ export async function cambiarPrioridadSoporteTicket(
         userId: user.id,
         context: `Prioridad ${anterior} → ${prioridad}`,
         soporteTicketId: id,
+        cambios: {
+          prioridad: { anterior, nuevo: prioridad },
+        },
+        ip: clientInfo?.ip,
+        dispositivo: clientInfo?.resumenDispositivo,
       });
     });
   } catch {

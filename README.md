@@ -46,7 +46,8 @@ incidencias o cambia el estado de un ticket.
 │   │   ├── inmuebles/          # CRUD inmuebles, archivado, notas
 │   │   ├── tareas/             # CRUD tareas, reclamo, liberación
 │   │   ├── soporte/            # Tickets de soporte + conversación
-│   │   ├── administracion/     # Usuarios (admin) y archivados
+│   │   ├── administracion/     # Panel de métricas, usuarios y archivados
+│   │   ├── api/cron/retencion/ # Endpoint de purga y retención periódica
 │   │   ├── terminos/           # Términos y condiciones (público)
 │   │   ├── privacidad/         # Política de privacidad (público)
 │   │   ├── layout.tsx          # Layout raíz, nav, footer, toaster, theme script

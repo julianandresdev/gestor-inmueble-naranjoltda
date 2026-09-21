@@ -26,6 +26,8 @@ model Usuario {
   soporteTicketsCerrados  SoporteTicket[] @relation("SoporteTicketCerrador")
   soporteMensajes         SoporteMensaje[]
   actividades             Actividad[]
+  registroAccesos         RegistroAcceso[]
+  sesionesPresencia       SesionPresencia[]
 
   @@map("usuarios")
 }
@@ -152,26 +154,32 @@ enum TareaEstado {
 }
 
 model Actividad {
-  id          String         @id @default(cuid())
-  tipo        ActividadTipo
-  entidad     EntidadTipo
-  entidadId   String
-  userId      String
-  context     String?
-  inmuebleId  String?
-  tareaId     String?
+  id              String         @id @default(cuid())
+  tipo            ActividadTipo
+  entidad         EntidadTipo
+  entidadId       String
+  userId          String
+  context         String?
+  ip              String?
+  dispositivo     String?
+  cambios         Json?
+  inmuebleId      String?
+  tareaId         String?
   soporteTicketId String?
-  createdAt   DateTime       @default(now())
-  usuario     Usuario        @relation(fields: [userId], references: [id], onDelete: Restrict)
-  inmueble    Inmueble?      @relation(fields: [inmuebleId], references: [id], onDelete: SetNull)
-  tarea       Tarea?         @relation(fields: [tareaId], references: [id], onDelete: SetNull)
-  soporteTicket SoporteTicket? @relation(fields: [soporteTicketId], references: [id], onDelete: SetNull)
+  createdAt       DateTime       @default(now())
+  usuario         Usuario        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  inmueble        Inmueble?      @relation(fields: [inmuebleId], references: [id], onDelete: SetNull)
+  tarea           Tarea?         @relation(fields: [tareaId], references: [id], onDelete: SetNull)
+  soporteTicket   SoporteTicket? @relation(fields: [soporteTicketId], references: [id], onDelete: SetNull)
 
   @@index([entidad, entidadId])
   @@index([inmuebleId])
   @@index([tareaId])
   @@index([soporteTicketId])
   @@index([createdAt])
+  @@index([userId, createdAt])
+  @@index([tipo, createdAt])
+  @@index([entidad, createdAt])
   @@map("actividad")
 }
 
@@ -248,6 +256,11 @@ enum ActividadTipo {
   MANTENIMIENTO_TAREA_RECLAMADA
   MANTENIMIENTO_TAREA_FINALIZADA
   MANTENIMIENTO_TAREA_LIBERADA
+  USUARIO_CREADO
+  USUARIO_EDITADO
+  USUARIO_ESTADO_CAMBIADO
+  INMUEBLES_EXPORTADOS
+  TAREAS_EXPORTADAS
 }
 
 enum EntidadTipo {
@@ -256,4 +269,50 @@ enum EntidadTipo {
   TAREA
   SOPORTE
   USUARIO
+}
+
+enum AccesoTipo {
+  LOGIN_EXITOSO
+  LOGIN_FALLIDO
+  LOGOUT
+}
+
+model RegistroAcceso {
+  id               String     @id @default(cuid())
+  userId           String?
+  username         String
+  tipo             AccesoTipo
+  motivo           String?
+  ip               String
+  dispositivo      String?
+  navegador        String?
+  sistemaOperativo String?
+  pais             String?
+  ciudad           String?
+  userAgent        String?
+  createdAt        DateTime   @default(now())
+  usuario          Usuario?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([userId, createdAt])
+  @@index([ip, createdAt])
+  @@index([tipo, createdAt])
+  @@map("registro_accesos")
+}
+
+model SesionPresencia {
+  id               String   @id @default(cuid())
+  sessionId        String   @unique
+  userId           String
+  ultimaActividad  DateTime @default(now()) @updatedAt
+  rutaActual       String
+  ip               String
+  dispositivo      String?
+  navegador        String?
+  sistemaOperativo String?
+  usuario          Usuario  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([ultimaActividad])
+  @@index([userId])
+  @@map("sesiones_presencia")
 }

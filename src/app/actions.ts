@@ -1,8 +1,11 @@
 "use server";
 
-import { signIn, signOut } from "@/auth";
+import { auth, signIn, signOut } from "@/auth";
 import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
+import { extractClientInfo } from "@/lib/client-info";
+import { registrarAcceso, cerrarPresenciaPorUsuario } from "@/lib/audit";
 
 export type LoginState = {
   error?: string;
@@ -40,6 +43,29 @@ export async function login(
 }
 
 export async function logout() {
+  const session = await auth();
+  if (session?.user) {
+    try {
+      const h = await headers();
+      const info = extractClientInfo(h);
+      await registrarAcceso({
+        userId: session.user.id,
+        username: session.user.username ?? session.user.name ?? "desconocido",
+        tipo: "LOGOUT",
+        motivo: "cierre_voluntario",
+        ip: info.ip,
+        dispositivo: info.dispositivo,
+        navegador: info.navegador,
+        sistemaOperativo: info.sistemaOperativo,
+        pais: info.pais,
+        ciudad: info.ciudad,
+        userAgent: info.userAgent,
+      });
+      await cerrarPresenciaPorUsuario(session.user.id);
+    } catch (e) {
+      console.error("[logout] error registrando auditoría de salida", e);
+    }
+  }
   await signOut({ redirectTo: "/login" });
   redirect("/login");
 }

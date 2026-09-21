@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requirePermission } from "@/lib/dal";
 import { registrarActividad, withTransaction } from "@/lib/audit";
+import { getClientInfoSafe } from "@/lib/client-info";
 import { z } from "zod";
 
 const notaSchema = z.object({
@@ -52,6 +53,7 @@ export async function crearNota(
     return { error: "No se pueden añadir notas a un inmueble archivado" };
   }
 
+  const clientInfo = await getClientInfoSafe();
   try {
     await withTransaction(async (tx) => {
       const nota = await tx.nota.create({
@@ -69,6 +71,8 @@ export async function crearNota(
         userId: user.id,
         context: `No. Inm ${inmueble.noInm}`,
         inmuebleId,
+        ip: clientInfo?.ip,
+        dispositivo: clientInfo?.resumenDispositivo,
       });
     });
   } catch {

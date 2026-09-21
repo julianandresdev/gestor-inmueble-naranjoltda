@@ -51,6 +51,11 @@ export async function AppNav() {
             </NavLink>
           )}
           {isAdmin && (
+            <NavLink href="/administracion/panel">
+              Panel
+            </NavLink>
+          )}
+          {isAdmin && (
             <NavLink href="/administracion/archivados">
               Archivados
             </NavLink>
