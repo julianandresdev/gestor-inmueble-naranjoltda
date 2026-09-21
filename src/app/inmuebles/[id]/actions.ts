@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/dal";
+import { requirePermission } from "@/lib/dal";
 import { registrarActividad, withTransaction } from "@/lib/audit";
 import { z } from "zod";
 
@@ -25,7 +25,7 @@ export async function crearNota(
   _prev: NotaFormState,
   formData: FormData
 ): Promise<NotaFormState> {
-  const user = await requireAuth();
+  const user = await requirePermission("INMUEBLES_MANAGE");
 
   const parsed = notaSchema.safeParse({
     contenido: formData.get("contenido"),

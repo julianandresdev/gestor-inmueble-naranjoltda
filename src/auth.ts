@@ -12,6 +12,7 @@ import {
   recordFailure,
 } from "@/lib/rate-limit";
 import type { Rol, Estado } from "@/generated/prisma/client";
+import { canAccessPath, unauthorizedPath } from "@/lib/permissions";
 
 const credentialsSchema = z.object({
   username: z.string().min(1, "El usuario es obligatorio"),
@@ -168,31 +169,12 @@ export const authConfig: NextAuthConfig = {
 
       const role = auth?.user?.role;
 
-      if (role === "MANTENIMIENTO") {
-        const allowed =
-          path === "/mantenimiento" ||
-          path.startsWith("/mantenimiento/") ||
-          path === "/perfil" ||
-          path === "/inicio";
-        if (!allowed) {
-          return Response.redirect(new URL("/mantenimiento", request.url));
-        }
-        if (path === "/inicio") {
-          return Response.redirect(new URL("/mantenimiento", request.url));
-        }
-        return true;
-      }
-
-      if (path.startsWith("/administracion") && role !== "ADMIN") {
-        return Response.redirect(new URL("/dashboard", request.url));
-      }
-
-      if (path.startsWith("/mantenimiento") && role !== "ADMIN" && role !== "ASESOR") {
-        return Response.redirect(new URL("/dashboard", request.url));
-      }
-
       if (path === "/inicio") {
-        return Response.redirect(new URL("/dashboard", request.url));
+        return Response.redirect(new URL(unauthorizedPath(role), request.url));
+      }
+
+      if (!canAccessPath(role, path)) {
+        return Response.redirect(new URL(unauthorizedPath(role), request.url));
       }
 
       return true;

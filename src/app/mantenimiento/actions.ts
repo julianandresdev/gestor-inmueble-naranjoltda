@@ -4,11 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAdminOrAsesor, requireAuth } from "@/lib/dal";
+import { requirePermission } from "@/lib/dal";
 import { registrarActividad, withTransaction } from "@/lib/audit";
 import { esVencida } from "@/lib/tarea-utils";
-
-const fechaLimiteRegex = /^\d{4}-\d{2}-\d{2}$/;
+import { isAllowedTaskDueDate, TASK_DUE_DATE_ERROR } from "@/lib/task-date";
 
 const crearSchema = z
   .object({
@@ -24,8 +23,8 @@ const crearSchema = z
       .string()
       .trim()
       .refine(
-        (v) => v === "" || fechaLimiteRegex.test(v),
-        "Formato de fecha inválido"
+        (v) => v === "" || isAllowedTaskDueDate(v),
+        TASK_DUE_DATE_ERROR
       )
       .optional()
       .nullable(),
@@ -63,7 +62,7 @@ export async function crearTareaMantenimiento(
   _prev: CrearMantenimientoState,
   formData: FormData
 ): Promise<CrearMantenimientoState> {
-  const user = await requireAdminOrAsesor();
+  const user = await requirePermission("MANTENIMIENTO_CREATE");
 
   const titulo = String(formData.get("titulo") ?? "").trim();
   const descripcionRaw = String(formData.get("descripcion") ?? "").trim();
@@ -152,17 +151,9 @@ export async function reclamarTareaMantenimiento(
   _prev: MantenimientoAccionState,
   formData: FormData
 ): Promise<MantenimientoAccionState> {
-  const user = await requireAuth();
+  const user = await requirePermission("MANTENIMIENTO_EXECUTE");
   const id = String(formData.get("id") ?? "");
   if (!id) return { error: "ID inválido" };
-
-  if (
-    user.role !== "MANTENIMIENTO" &&
-    user.role !== "ADMIN" &&
-    user.role !== "ASESOR"
-  ) {
-    return { error: "No tienes permisos para reclamar tareas de mantenimiento" };
-  }
 
   try {
     await withTransaction(async (tx) => {
@@ -199,7 +190,7 @@ export async function finalizarTareaMantenimiento(
   _prev: MantenimientoAccionState,
   formData: FormData
 ): Promise<MantenimientoAccionState> {
-  const user = await requireAuth();
+  const user = await requirePermission("MANTENIMIENTO_EXECUTE");
   const id = String(formData.get("id") ?? "");
   if (!id) return { error: "ID inválido" };
 
@@ -258,7 +249,7 @@ export async function desreclamarTareaMantenimiento(
   _prev: MantenimientoAccionState,
   formData: FormData
 ): Promise<MantenimientoAccionState> {
-  const user = await requireAuth();
+  const user = await requirePermission("MANTENIMIENTO_EXECUTE");
   const id = String(formData.get("id") ?? "");
   if (!id) return { error: "ID inválido" };
 

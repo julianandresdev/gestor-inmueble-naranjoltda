@@ -1,16 +1,10 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { requireAuth, listOpcionesInmuebles } from "@/lib/dal";
+import { requirePermission, listOpcionesInmuebles } from "@/lib/dal";
 import { Button } from "@/components/ui/button";
 import { CrearMantenimientoForm } from "./crear-mantenimiento-form";
 
 export default async function NuevaMantenimientoPage() {
-  const user = await requireAuth();
-
-  if (user.role !== "ADMIN" && user.role !== "ASESOR") {
-    if (user.role === "MANTENIMIENTO") redirect("/mantenimiento");
-    redirect("/inicio");
-  }
+  await requirePermission("MANTENIMIENTO_CREATE");
 
   const opcionesInmueble = await listOpcionesInmuebles();
 

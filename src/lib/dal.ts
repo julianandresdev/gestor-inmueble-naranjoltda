@@ -1,6 +1,11 @@
 import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
+import {
+  hasPermission,
+  unauthorizedPath,
+  type Permission,
+} from "@/lib/permissions";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import type { ActividadItem } from "@/lib/audit";
@@ -80,31 +85,24 @@ export const requireAuth = cache(async () => {
   return user;
 });
 
-export const requireAdmin = cache(async () => {
+export const requirePermission = cache(async (permission: Permission) => {
   const user = await requireAuth();
-  if (user.role !== "ADMIN") redirect("/inicio");
+  if (!hasPermission(user.role, permission)) {
+    redirect(unauthorizedPath(user.role));
+  }
   return user;
+});
+
+export const requireAdmin = cache(async () => {
+  return requirePermission("ADMINISTRACION_MANAGE");
 });
 
 export const requireAdminOrAsesor = cache(async () => {
-  const user = await requireAuth();
-  if (user.role !== "ADMIN" && user.role !== "ASESOR") {
-    if (user.role === "MANTENIMIENTO") redirect("/mantenimiento");
-    redirect("/inicio");
-  }
-  return user;
+  return requirePermission("INMUEBLES_MANAGE");
 });
 
 export const requireMantenimiento = cache(async () => {
-  const user = await requireAuth();
-  if (
-    user.role !== "MANTENIMIENTO" &&
-    user.role !== "ADMIN" &&
-    user.role !== "ASESOR"
-  ) {
-    redirect("/inicio");
-  }
-  return user;
+  return requirePermission("MANTENIMIENTO_VIEW");
 });
 
 export const requireTicketAccess = cache(
@@ -197,7 +195,7 @@ export async function listInmuebles(
   filtros: InmuebleFiltros = {},
   options: PageOptions = {}
 ): Promise<Page<InmuebleListItem>> {
-  await requireAuth();
+  await requirePermission("INMUEBLES_VIEW");
   const take = resolveTake(options.take);
   const baseWhere = buildWhere(filtros);
   const c = decodeCursor<{ noInm: string }>(options.cursor);
@@ -225,7 +223,7 @@ export async function listInmuebles(
 }
 
 export async function getOpcionesFiltros() {
-  await requireAuth();
+  await requirePermission("INMUEBLES_VIEW");
   const [ciudades, barrios, tipos] = await Promise.all([
     prisma.inmueble.findMany({
       where: { estado: "ACTIVO" },
@@ -255,7 +253,7 @@ export type InmuebleDetalle = Awaited<
 > & {};
 
 export async function getInmueble(id: string) {
-  await requireAuth();
+  await requirePermission("INMUEBLES_VIEW");
   return prisma.inmueble.findUnique({
     where: { id },
     include: {
@@ -276,7 +274,7 @@ export async function listarNotas(
   inmuebleId: string,
   options: PageOptions = {}
 ): Promise<Page<NotaConAutor>> {
-  await requireAuth();
+  await requirePermission("INMUEBLES_VIEW");
   const take = resolveTake(options.take);
   const c = decodeCursor<{ createdAt: string; id: string }>(options.cursor);
   const where: Prisma.NotaWhereInput = {
@@ -381,7 +379,7 @@ export async function listTareas(
   filtros: TareaFiltros = {},
   options: PageOptions = {}
 ): Promise<Page<TareaListItem>> {
-  await requireAuth();
+  await requirePermission("TAREAS_GENERALES_VIEW");
   const take = resolveTake(options.take);
   const baseWhere = buildTareaWhere(filtros);
   const c = decodeCursor<{
@@ -455,10 +453,10 @@ export async function listTareas(
 }
 
 export async function getResumenTareas() {
-  await requireAuth();
+  await requirePermission("TAREAS_GENERALES_VIEW");
   const agrupadas = await prisma.tarea.groupBy({
     by: ["estado"],
-    where: { estado: { not: "ARCHIVADA" } },
+    where: { tipo: "GENERAL", estado: { not: "ARCHIVADA" } },
     _count: { _all: true },
   });
   const conteo: Record<string, number> = {};
@@ -475,9 +473,13 @@ export async function getResumenTareas() {
 }
 
 export async function listResponsables() {
-  await requireAuth();
+  await requirePermission("TAREAS_GENERALES_VIEW");
   const rows = await prisma.tarea.findMany({
-    where: { estado: { not: "ARCHIVADA" }, assignedToId: { not: null } },
+    where: {
+      tipo: "GENERAL",
+      estado: { not: "ARCHIVADA" },
+      assignedToId: { not: null },
+    },
     distinct: ["assignedToId"],
     select: { asignadaA: { select: { id: true, nombre: true } } },
   });
@@ -502,9 +504,9 @@ export type TareaDetalle = {
 };
 
 export async function getTarea(id: string): Promise<TareaDetalle | null> {
-  await requireAuth();
-  return prisma.tarea.findUnique({
-    where: { id },
+  await requirePermission("TAREAS_GENERALES_VIEW");
+  return prisma.tarea.findFirst({
+    where: { id, tipo: "GENERAL" },
     select: {
       id: true,
       titulo: true,
@@ -523,7 +525,7 @@ export async function getTarea(id: string): Promise<TareaDetalle | null> {
 }
 
 export async function listOpcionesInmuebles() {
-  await requireAuth();
+  await requirePermission("INMUEBLES_VIEW");
   return prisma.inmueble.findMany({
     where: { estado: "ACTIVO" },
     select: { id: true, noInm: true, direccion: true },
@@ -556,6 +558,7 @@ export type MantenimientoFiltros = {
 
 function buildMantenimientoWhere(
   filtros: MantenimientoFiltros,
+  user?: { id: string; role: string },
 ): Prisma.TareaWhereInput {
   const where: Prisma.TareaWhereInput = {
     tipo: "MANTENIMIENTO",
@@ -573,6 +576,14 @@ function buildMantenimientoWhere(
     ];
   }
 
+  if (user?.role === "MANTENIMIENTO") {
+    where.AND = [
+      {
+        OR: [{ estado: "SIN_ASIGNAR" }, { assignedToId: user.id }],
+      },
+    ];
+  }
+
   return where;
 }
 
@@ -580,15 +591,38 @@ export async function listMantenimientoTareas(
   filtros: MantenimientoFiltros = {},
   options: PageOptions = {}
 ): Promise<Page<MantenimientoListItem>> {
-  const session = await getCurrentUser();
-  if (!session) redirect("/login");
+  const session = await requirePermission("MANTENIMIENTO_VIEW");
 
   const take = resolveTake(options.take);
-  const baseWhere = buildMantenimientoWhere(filtros);
+  const baseWhere = buildMantenimientoWhere(filtros, session);
+  const cursor = decodeCursor<{ createdAt: string; id: string }>(options.cursor);
+  const where: Prisma.TareaWhereInput = cursor
+    ? {
+        ...baseWhere,
+        AND: [
+          ...(Array.isArray(baseWhere.AND)
+            ? baseWhere.AND
+            : baseWhere.AND
+              ? [baseWhere.AND]
+              : []),
+          {
+            OR: [
+              { createdAt: { lt: new Date(cursor.createdAt) } },
+              {
+                AND: [
+                  { createdAt: new Date(cursor.createdAt) },
+                  { id: { lt: cursor.id } },
+                ],
+              },
+            ],
+          },
+        ],
+      }
+    : baseWhere;
 
   const [rows, total] = await Promise.all([
     prisma.tarea.findMany({
-      where: baseWhere,
+      where,
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       take: take + 1,
       select: {
@@ -670,7 +704,7 @@ export type MantenimientoDetalleItem = MantenimientoListItem & {
 export async function getMantenimientoTarea(
   id: string
 ): Promise<MantenimientoDetalleItem | null> {
-  await getCurrentUser();
+  const session = await requirePermission("MANTENIMIENTO_VIEW");
   const r = await prisma.tarea.findUnique({
     where: { id, tipo: "MANTENIMIENTO" },
     select: {
@@ -701,6 +735,13 @@ export async function getMantenimientoTarea(
     },
   });
   if (!r) return null;
+  if (
+    session.role === "MANTENIMIENTO" &&
+    r.estado !== "SIN_ASIGNAR" &&
+    r.assignedToId !== session.id
+  ) {
+    redirect("/mantenimiento");
+  }
   const tel =
     r.contacto === "ARRENDATARIO"
       ? r.inmueble?.celArre1 ?? null
@@ -742,10 +783,10 @@ export async function getMantenimientoResumen(): Promise<{
   enProgreso: number;
   finalizadas: number;
 }> {
-  await getCurrentUser();
+  const session = await requirePermission("MANTENIMIENTO_VIEW");
   const counts = await prisma.tarea.groupBy({
     by: ["estado"],
-    where: { tipo: "MANTENIMIENTO" },
+    where: buildMantenimientoWhere({}, session),
     _count: { _all: true },
   });
   let pendientes = 0;
@@ -823,7 +864,7 @@ export type DashboardData = {
 };
 
 export async function getDashboardData(): Promise<DashboardData> {
-  await requireAuth();
+  await requirePermission("DASHBOARD_VIEW");
 
   const now = new Date();
 

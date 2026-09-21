@@ -1,5 +1,9 @@
 import Link from "next/link";
-import { listSoporteTickets, getSoporteKpis, requireAuth } from "@/lib/dal";
+import {
+  listSoporteTickets,
+  getSoporteKpis,
+  requirePermission,
+} from "@/lib/dal";
 import { SoporteFiltros } from "./filtros";
 import {
   TICKET_ESTADO_LABEL,
@@ -31,7 +35,7 @@ export default async function SoportePage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const user = await requireAuth();
+  const user = await requirePermission("SOPORTE_CREATE");
   const sp = await searchParams;
   const get = (k: string) => {
     const v = sp[k];

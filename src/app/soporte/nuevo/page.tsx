@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { requireAuth } from "@/lib/dal";
+import { requirePermission } from "@/lib/dal";
 import { Button } from "@/components/ui/button";
 import { NuevoTicketForm } from "../nuevo-ticket-form";
 
 export default async function NuevoSoportePage() {
-  await requireAuth();
+  await requirePermission("SOPORTE_CREATE");
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col gap-6 px-4 py-10">

@@ -1,10 +1,9 @@
 import Link from "next/link";
 import {
-  getCurrentUser,
   listMantenimientoTareas,
   getMantenimientoResumen,
+  requirePermission,
 } from "@/lib/dal";
-import { redirect } from "next/navigation";
 import {
   Table,
   TableBody,
@@ -47,12 +46,12 @@ export default async function MantenimientoPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const session = await getCurrentUser();
-  if (!session) redirect("/login");
+  const session = await requirePermission("MANTENIMIENTO_VIEW");
 
   const sp = await searchParams;
   const estadoParam = sp.estado;
   const q = typeof sp.q === "string" ? sp.q : undefined;
+  const cursor = typeof sp.cursor === "string" ? sp.cursor : undefined;
 
   const estadoFiltro: TareaEstado | "TODOS" =
     typeof estadoParam === "string" &&
@@ -61,7 +60,7 @@ export default async function MantenimientoPage({
       : "TODOS";
 
   const [page, resumen] = await Promise.all([
-    listMantenimientoTareas({ estado: estadoFiltro, q }),
+    listMantenimientoTareas({ estado: estadoFiltro, q }, { cursor }),
     getMantenimientoResumen(),
   ]);
 
@@ -198,7 +197,7 @@ export default async function MantenimientoPage({
                       </Link>
                     </TableCell>
                     <TableCell>
-                      {t.inmueble ? (
+                      {t.inmueble && session.role !== "MANTENIMIENTO" ? (
                         <Link
                           href={`/inmuebles/${t.inmueble.id}`}
                           className="font-mono text-sm hover:underline"
@@ -254,6 +253,25 @@ export default async function MantenimientoPage({
               </TableBody>
             </Table>
           </div>
+          {page.nextCursor && (
+            <div className="mt-4 flex justify-center">
+              <Button
+                variant="outline"
+                nativeButton={false}
+                render={
+                  <Link
+                    href={`/mantenimiento?${new URLSearchParams({
+                      ...(estadoFiltro !== "TODOS" ? { estado: estadoFiltro } : {}),
+                      ...(q ? { q } : {}),
+                      cursor: page.nextCursor,
+                    }).toString()}`}
+                  />
+                }
+              >
+                Cargar más
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </main>

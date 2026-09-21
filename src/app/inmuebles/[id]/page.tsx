@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getInmueble, requireAuth } from "@/lib/dal";
+import { getInmueble, requirePermission } from "@/lib/dal";
 import { listarActividadInmueble } from "@/lib/audit";
 import { auth } from "@/auth";
 import { formatDateTime } from "@/lib/format";
@@ -34,7 +34,7 @@ export default async function InmuebleDetallePage({
 }) {
   const session = await auth();
   const user = session?.user;
-  await requireAuth();
+  await requirePermission("INMUEBLES_VIEW");
   const { id } = await params;
   const [inmueble, actividad] = await Promise.all([
     getInmueble(id),

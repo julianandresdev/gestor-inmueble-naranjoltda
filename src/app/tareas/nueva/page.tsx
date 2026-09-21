@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { requireAuth, listOpcionesInmuebles } from "@/lib/dal";
+import { requirePermission, listOpcionesInmuebles } from "@/lib/dal";
 import { Button } from "@/components/ui/button";
 import { NuevaTareaForm } from "../nueva-tarea-form";
 
 export default async function NuevaTareaPage() {
-  await requireAuth();
+  await requirePermission("TAREAS_GENERALES_MANAGE");
   const inmuebles = await listOpcionesInmuebles();
 
   return (

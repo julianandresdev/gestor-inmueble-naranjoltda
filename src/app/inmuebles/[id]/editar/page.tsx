@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getInmueble, requireAuth } from "@/lib/dal";
+import { getInmueble, requirePermission } from "@/lib/dal";
 import { Button } from "@/components/ui/button";
 import { EditarInmuebleForm } from "./editar-inmueble-form";
 
@@ -9,7 +9,7 @@ export default async function EditarInmueblePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireAuth();
+  await requirePermission("INMUEBLES_MANAGE");
   const { id } = await params;
   const inmueble = await getInmueble(id);
   if (!inmueble) notFound();

@@ -1,6 +1,7 @@
 import "server-only";
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/dal";
 
 export type ActividadItem = {
   id: string;
@@ -13,6 +14,7 @@ export type ActividadItem = {
 export async function listarActividadInmueble(
   inmuebleId: string
 ): Promise<ActividadItem[]> {
+  await requireAuth();
   const rows = await prisma.actividad.findMany({
     where: { inmuebleId },
     orderBy: { createdAt: "desc" },
@@ -36,6 +38,7 @@ export async function listarActividadInmueble(
 export async function listarActividadTarea(
   tareaId: string
 ): Promise<ActividadItem[]> {
+  await requireAuth();
   const rows = await prisma.actividad.findMany({
     where: { tareaId },
     orderBy: { createdAt: "desc" },
@@ -85,7 +88,7 @@ export const ACTIVIDAD_PREFIX: Record<string, string> = {
   INMUEBLE_CREADO: "+",
   INMUEBLE_EDITADO: "✎",
   INMUEBLE_ARCHIVADO: "■",
-  INMUEBLE_RESTAURADO: "�",
+  INMUEBLE_RESTAURADO: "↺",
   NOTA_CREADA: "✎",
   TAREA_CREADA: "+",
   TAREA_RECLAMADA: "▶",

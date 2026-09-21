@@ -27,9 +27,7 @@ export function MantenimientoAcciones({
 }) {
   const canClaim =
     estado === "SIN_ASIGNAR" &&
-    (currentUserRole === "MANTENIMIENTO" ||
-      currentUserRole === "ADMIN" ||
-      currentUserRole === "ASESOR");
+    (currentUserRole === "MANTENIMIENTO" || currentUserRole === "ADMIN");
   const isAssignee = assignedToId === currentUserId;
   const canFinalize =
     estado === "EN_PROGRESO" &&

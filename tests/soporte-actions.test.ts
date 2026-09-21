@@ -1,36 +1,43 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { mockRequireAuth, mockRequireAdmin, mockNotifyTicket, mockPrisma } =
-  vi.hoisted(() => ({
-    mockRequireAuth: vi.fn(),
-    mockRequireAdmin: vi.fn(),
-    mockNotifyTicket: vi.fn(),
-    mockPrisma: {
-      soporteTicket: {
-        findUnique: vi.fn(),
-        create: vi.fn(),
-        update: vi.fn(),
-        count: vi.fn(),
-        findMany: vi.fn(),
-      },
-      soporteMensaje: {
-        create: vi.fn(),
-        findMany: vi.fn(),
-      },
-      usuario: {
-        findUnique: vi.fn(),
-      },
-      $transaction: vi.fn(),
-      actividad: {
-        create: vi.fn(),
-        findMany: vi.fn(),
-      },
+const {
+  mockRequireAuth,
+  mockRequireAdmin,
+  mockRequirePermission,
+  mockNotifyTicket,
+  mockPrisma,
+} = vi.hoisted(() => ({
+  mockRequireAuth: vi.fn(),
+  mockRequireAdmin: vi.fn(),
+  mockRequirePermission: vi.fn(),
+  mockNotifyTicket: vi.fn(),
+  mockPrisma: {
+    soporteTicket: {
+      findUnique: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      count: vi.fn(),
+      findMany: vi.fn(),
     },
-  }));
+    soporteMensaje: {
+      create: vi.fn(),
+      findMany: vi.fn(),
+    },
+    usuario: {
+      findUnique: vi.fn(),
+    },
+    $transaction: vi.fn(),
+    actividad: {
+      create: vi.fn(),
+      findMany: vi.fn(),
+    },
+  },
+}));
 
 vi.mock("@/lib/dal", () => ({
   requireAuth: mockRequireAuth,
   requireAdmin: mockRequireAdmin,
+  requirePermission: mockRequirePermission,
 }));
 vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }));
 vi.mock("@/lib/telegram", () => ({
@@ -59,6 +66,10 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockRequireAuth.mockResolvedValue(ASESOR);
   mockRequireAdmin.mockResolvedValue(ADMIN);
+  mockRequirePermission.mockImplementation(async (perm: string) => {
+    if (perm === "ADMINISTRACION_MANAGE") return mockRequireAdmin();
+    return mockRequireAuth();
+  });
   mockNotifyTicket.mockResolvedValue({ ok: true });
   mockPrisma.$transaction.mockImplementation(
     async (fn: (tx: typeof mockPrisma) => Promise<unknown>) => fn(mockPrisma)

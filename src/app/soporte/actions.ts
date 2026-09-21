@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { requireAuth, requireAdmin } from "@/lib/dal";
+import { requireAdmin, requirePermission } from "@/lib/dal";
 import { registrarActividad, withTransaction } from "@/lib/audit";
 import { notifyTicket } from "@/lib/telegram";
 import type { TicketAccion } from "@/lib/telegram";
@@ -120,7 +120,7 @@ export async function crearSoporteTicket(
   _prev: SoporteFormState,
   formData: FormData
 ): Promise<SoporteFormState> {
-  const user = await requireAuth();
+  const user = await requirePermission("SOPORTE_CREATE");
 
   const parsed = crearSchema.safeParse({
     titulo: formData.get("titulo"),
@@ -270,7 +270,7 @@ export async function agregarMensajeSoporte(
   _prev: SoporteAccionState,
   formData: FormData
 ): Promise<SoporteAccionState> {
-  const user = await requireAuth();
+  const user = await requirePermission("SOPORTE_COMMENT_OWN");
 
   const parsed = mensajeSchema.safeParse({
     id: formData.get("id"),
@@ -335,7 +335,7 @@ export async function cambiarPrioridadSoporteTicket(
   _prev: SoporteAccionState,
   formData: FormData
 ): Promise<SoporteAccionState> {
-  const user = await requireAuth();
+  const user = await requirePermission("SOPORTE_CREATE");
 
   const parsed = cambiarPrioridadSchema.safeParse({
     id: formData.get("id"),

@@ -3,12 +3,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const {
   mockRequireAuth,
   mockRequireAdminOrAsesor,
+  mockRequirePermission,
   mockPrisma,
   mockWithTransaction,
   mockRegistrarActividad,
 } = vi.hoisted(() => ({
   mockRequireAuth: vi.fn(),
   mockRequireAdminOrAsesor: vi.fn(),
+  mockRequirePermission: vi.fn(),
   mockPrisma: {
     tarea: {
       findUnique: vi.fn(),
@@ -23,6 +25,7 @@ const {
 vi.mock("@/lib/dal", () => ({
   requireAuth: mockRequireAuth,
   requireAdminOrAsesor: mockRequireAdminOrAsesor,
+  requirePermission: mockRequirePermission,
 }));
 vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }));
 vi.mock("@/lib/audit", () => ({
@@ -64,6 +67,10 @@ const MANTTO = {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  mockRequirePermission.mockImplementation(async (perm: string) => {
+    if (perm === "MANTENIMIENTO_CREATE") return mockRequireAdminOrAsesor();
+    return mockRequireAuth();
+  });
   mockWithTransaction.mockImplementation(
     async (fn: (tx: typeof mockPrisma) => Promise<unknown>) => fn(mockPrisma)
   );

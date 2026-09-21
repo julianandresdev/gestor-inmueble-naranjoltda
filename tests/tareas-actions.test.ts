@@ -3,10 +3,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const {
   mockRequireAuth,
   mockRequireAdmin,
+  mockRequirePermission,
   mockPrisma,
 } = vi.hoisted(() => ({
   mockRequireAuth: vi.fn(),
   mockRequireAdmin: vi.fn(),
+  mockRequirePermission: vi.fn(),
   mockPrisma: {
     tarea: {
       findUnique: vi.fn(),
@@ -31,6 +33,7 @@ const {
 vi.mock("@/lib/dal", () => ({
   requireAuth: mockRequireAuth,
   requireAdmin: mockRequireAdmin,
+  requirePermission: mockRequirePermission,
 }));
 vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
@@ -49,6 +52,10 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockRequireAuth.mockResolvedValue(ASESOR);
   mockRequireAdmin.mockResolvedValue(ADMIN);
+  mockRequirePermission.mockImplementation(async (perm: string) => {
+    if (perm === "ADMINISTRACION_MANAGE") return mockRequireAdmin();
+    return mockRequireAuth();
+  });
   mockPrisma.$transaction.mockImplementation(async (fn: (tx: typeof mockPrisma) => Promise<unknown>) => fn(mockPrisma));
   // Re-apply specific mock implementations after clearAllMocks
   // (clearAllMocks wipes .mockReturnValue but the tests re-set them per-it).
@@ -130,15 +137,15 @@ describe("tareas/actions — liberarTarea", () => {
       estado: "EN_PROGRESO",
       assignedToId: ASESOR.id,
     });
-    mockPrisma.tarea.update.mockResolvedValue({});
+    mockPrisma.tarea.updateMany.mockResolvedValue({ count: 1 });
 
     const fd = new FormData();
     fd.set("id", "t1");
     const res = await liberarTarea({}, fd);
     expect(res).toEqual({ ok: true });
-    expect(mockPrisma.tarea.update).toHaveBeenCalledWith(
+    expect(mockPrisma.tarea.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: "t1" },
+        where: { id: "t1", estado: "EN_PROGRESO", assignedToId: ASESOR.id },
         data: { estado: "SIN_ASIGNAR", assignedToId: null },
       })
     );
@@ -153,7 +160,7 @@ describe("tareas/actions — liberarTarea", () => {
     fd.set("id", "t1");
     const res = await liberarTarea({}, fd);
     expect(res.error).toMatch(/solo se puede liberar/i);
-    expect(mockPrisma.tarea.update).not.toHaveBeenCalled();
+    expect(mockPrisma.tarea.updateMany).not.toHaveBeenCalled();
   });
 
   it("rechaza si el usuario no es el responsable y no es ADMIN", async () => {
@@ -166,7 +173,7 @@ describe("tareas/actions — liberarTarea", () => {
     fd.set("id", "t1");
     const res = await liberarTarea({}, fd);
     expect(res.error).toMatch(/permisos/);
-    expect(mockPrisma.tarea.update).not.toHaveBeenCalled();
+    expect(mockPrisma.tarea.updateMany).not.toHaveBeenCalled();
   });
 
   it("permite a ADMIN liberar tarea de otro", async () => {
@@ -175,7 +182,7 @@ describe("tareas/actions — liberarTarea", () => {
       estado: "EN_PROGRESO",
       assignedToId: "otroUsuario",
     });
-    mockPrisma.tarea.update.mockResolvedValue({});
+    mockPrisma.tarea.updateMany.mockResolvedValue({ count: 1 });
     const fd = new FormData();
     fd.set("id", "t1");
     const res = await liberarTarea({}, fd);
@@ -194,7 +201,7 @@ describe("tareas/actions — completarTarea", () => {
     fd.set("id", "t1");
     const res = await completarTarea({}, fd);
     expect(res.error).toMatch(/permisos/);
-    expect(mockPrisma.tarea.update).not.toHaveBeenCalled();
+    expect(mockPrisma.tarea.updateMany).not.toHaveBeenCalled();
   });
 
   it("permite a ADMIN completar tarea de otro", async () => {
@@ -203,14 +210,14 @@ describe("tareas/actions — completarTarea", () => {
       estado: "EN_PROGRESO",
       assignedToId: "otroUsuario",
     });
-    mockPrisma.tarea.update.mockResolvedValue({});
+    mockPrisma.tarea.updateMany.mockResolvedValue({ count: 1 });
 
     const fd = new FormData();
     fd.set("id", "t1");
     const res = await completarTarea({}, fd);
 
     expect(res).toEqual({ ok: true });
-    expect(mockPrisma.tarea.update).toHaveBeenCalledWith(
+    expect(mockPrisma.tarea.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           estado: "COMPLETADA",
@@ -226,13 +233,13 @@ describe("tareas/actions — completarTarea", () => {
       estado: "EN_PROGRESO",
       assignedToId: ASESOR.id,
     });
-    mockPrisma.tarea.update.mockResolvedValue({});
+    mockPrisma.tarea.updateMany.mockResolvedValue({ count: 1 });
 
     const fd = new FormData();
     fd.set("id", "t1");
     await completarTarea({}, fd);
 
-    expect(mockPrisma.tarea.update).toHaveBeenCalledWith(
+    expect(mockPrisma.tarea.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           estado: "COMPLETADA",

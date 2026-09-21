@@ -64,7 +64,7 @@ Next.js será utilizado tanto para la interfaz como para la lógica del servidor
 
 Se utilizará TypeScript en todo el proyecto.
 
-Rutas previstas:
+Rutas de la aplicación:
 
 ```text
 /login
@@ -78,6 +78,16 @@ Rutas previstas:
 /tareas
 /tareas/nueva
 /tareas/[id]
+
+/mantenimiento
+/mantenimiento/nueva
+/mantenimiento/[id]
+
+/soporte
+/soporte/nuevo
+/soporte/[id]
+
+/perfil
 
 /administracion/usuarios
 /administracion/archivados
@@ -177,11 +187,12 @@ La aplicación debe manejar:
 - Roles.
 - Usuarios activos e inactivos.
 
-Roles iniciales:
+Roles del sistema:
 
 ```text
 ADMIN
 ASESOR
+MANTENIMIENTO
 ```
 
 Las contraseñas nunca deben almacenarse en texto plano.

@@ -47,13 +47,11 @@ export function SoporteTicketAcciones({
   ticketId,
   estado,
   prioridad,
-  puedeModificar,
   esAdmin,
 }: {
   ticketId: string;
   estado: TicketEstado;
   prioridad: TicketPrioridad;
-  puedeModificar: boolean;
   esAdmin: boolean;
 }) {
   const router = useRouter();
@@ -103,7 +101,7 @@ export function SoporteTicketAcciones({
 
   return (
     <div className="flex flex-col gap-6">
-      {puedeModificar && (
+      {esAdmin && (
         <Card>
           <CardContent className="flex flex-col gap-3 py-6">
             <h3 className="text-sm font-semibold">Cambiar prioridad</h3>

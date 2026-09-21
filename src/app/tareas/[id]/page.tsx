@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getTarea, requireAuth } from "@/lib/dal";
+import { getTarea, requirePermission } from "@/lib/dal";
 import { listarActividadTarea } from "@/lib/audit";
 import { ESTADO_LABEL, esVencida } from "@/lib/tarea-utils";
 import { formatDate, formatDateTime } from "@/lib/format";
@@ -31,7 +31,7 @@ export default async function TareaDetallePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const user = await requireAuth();
+  const user = await requirePermission("TAREAS_GENERALES_VIEW");
   const { id } = await params;
   const [tarea, actividad] = await Promise.all([
     getTarea(id),

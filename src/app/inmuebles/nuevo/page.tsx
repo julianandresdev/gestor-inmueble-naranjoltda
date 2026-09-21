@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { requireAuth } from "@/lib/dal";
+import { requirePermission } from "@/lib/dal";
 import { Button } from "@/components/ui/button";
 import { CrearInmuebleForm } from "./crear-inmueble-form";
 
 export default async function NuevoInmueblePage() {
-  await requireAuth();
+  await requirePermission("INMUEBLES_MANAGE");
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-6 px-4 py-10">

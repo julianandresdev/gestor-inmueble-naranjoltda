@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { mockRequireAuth, mockRequireAdmin, mockPrisma } = vi.hoisted(() => ({
+const { mockRequireAuth, mockRequireAdmin, mockRequirePermission, mockPrisma } = vi.hoisted(() => ({
   mockRequireAuth: vi.fn(),
   mockRequireAdmin: vi.fn(),
+  mockRequirePermission: vi.fn(),
   mockPrisma: {
     inmueble: {
       findUnique: vi.fn(),
@@ -19,6 +20,7 @@ const { mockRequireAuth, mockRequireAdmin, mockPrisma } = vi.hoisted(() => ({
 vi.mock("@/lib/dal", () => ({
   requireAuth: mockRequireAuth,
   requireAdmin: mockRequireAdmin,
+  requirePermission: mockRequirePermission,
 }));
 vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
@@ -42,6 +44,10 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockRequireAuth.mockResolvedValue(ASESOR);
   mockRequireAdmin.mockResolvedValue(ADMIN);
+  mockRequirePermission.mockImplementation(async (perm: string) => {
+    if (perm === "ADMINISTRACION_MANAGE") return mockRequireAdmin();
+    return mockRequireAuth();
+  });
   mockPrisma.$transaction.mockImplementation(async (fn: (tx: typeof mockPrisma) => Promise<unknown>) => fn(mockPrisma));
 });
 

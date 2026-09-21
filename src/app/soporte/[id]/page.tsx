@@ -4,7 +4,7 @@ import {
   getSoporteTicket,
   listSoporteMensajes,
   listarActividadSoporte,
-  requireAuth,
+  requirePermission,
 } from "@/lib/dal";
 import {
   TICKET_ESTADO_LABEL,
@@ -40,7 +40,7 @@ export default async function SoporteDetallePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const user = await requireAuth();
+  const user = await requirePermission("SOPORTE_CREATE");
   const { id } = await params;
 
   const [ticket, mensajesPage, actividadPage] = await Promise.all([
@@ -53,9 +53,7 @@ export default async function SoporteDetallePage({
 
   if (!ticket) notFound();
 
-  const esMio = ticket.creadoPor.id === user.id;
   const soyAdmin = user.role === "ADMIN";
-  const puedeModificar = esMio || soyAdmin;
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col gap-6 px-4 py-10">
@@ -160,7 +158,6 @@ export default async function SoporteDetallePage({
             ticketId={ticket.id}
             estado={ticket.estado}
             prioridad={ticket.prioridad}
-            puedeModificar={puedeModificar}
             esAdmin={soyAdmin}
           />
         </CardContent>

@@ -2,13 +2,18 @@ import { auth } from "@/auth";
 import Link from "next/link";
 import Image from "next/image";
 import { LogoutForm } from "@/components/logout-form";
+import { hasPermission } from "@/lib/permissions";
 
 export async function AppNav() {
   const session = await auth();
   if (!session?.user) return null;
   const user = session.user;
-  const isAdmin = user.role === "ADMIN";
-  const isAsesor = user.role === "ASESOR";
+  const isAdmin = hasPermission(user.role, "ADMINISTRACION_MANAGE");
+  const canViewDashboard = hasPermission(user.role, "DASHBOARD_VIEW");
+  const canViewInmuebles = hasPermission(user.role, "INMUEBLES_VIEW");
+  const canViewTareas = hasPermission(user.role, "TAREAS_GENERALES_VIEW");
+  const canViewMantenimiento = hasPermission(user.role, "MANTENIMIENTO_VIEW");
+  const canViewSoporte = hasPermission(user.role, "SOPORTE_CREATE");
   const isMantenimiento = user.role === "MANTENIMIENTO";
 
   return (
@@ -18,7 +23,7 @@ export async function AppNav() {
           <Image src="/logo.png" alt="Naranjo Ltda." width={32} height={32} className="h-8 w-auto" priority />
         </Link>
         <nav className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto text-sm">
-            {!isMantenimiento && (
+            {canViewDashboard && (
               <Link
                 href="/dashboard"
                 className="rounded px-2 py-1 font-medium hover:bg-muted"
@@ -26,7 +31,7 @@ export async function AppNav() {
                 Dashboard
               </Link>
             )}
-            {!isMantenimiento && (
+            {canViewInmuebles && (
               <Link
                 href="/inmuebles"
                 className="rounded px-2 py-1 hover:bg-muted"
@@ -34,7 +39,7 @@ export async function AppNav() {
                 Inmuebles
               </Link>
             )}
-            {!isMantenimiento && (
+            {canViewTareas && (
               <Link
                 href="/tareas"
                 className="rounded px-2 py-1 hover:bg-muted"
@@ -42,7 +47,7 @@ export async function AppNav() {
                 Tareas
               </Link>
             )}
-            {!isMantenimiento && (
+            {canViewSoporte && (
               <Link
                 href="/soporte"
                 className="rounded px-2 py-1 hover:bg-muted"
@@ -50,18 +55,12 @@ export async function AppNav() {
                 Soporte
               </Link>
             )}
-            {isMantenimiento && (
+            {canViewMantenimiento && (
               <Link
                 href="/mantenimiento"
-                className="rounded px-2 py-1 font-medium hover:bg-muted"
-              >
-                Mantenimiento
-              </Link>
-            )}
-            {(isAdmin || isAsesor) && (
-              <Link
-                href="/mantenimiento"
-                className="rounded px-2 py-1 hover:bg-muted"
+                className={`rounded px-2 py-1 hover:bg-muted${
+                  isMantenimiento ? " font-medium" : ""
+                }`}
               >
                 Mantenimiento
               </Link>

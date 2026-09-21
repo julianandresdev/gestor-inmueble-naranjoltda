@@ -63,6 +63,19 @@ Pueden:
 
 No existe asignación de inmuebles a asesores.
 
+## Mantenimiento
+
+Rol especializado para personal técnico o de reparaciones en campo.
+
+Puede:
+
+- Acceder únicamente al módulo de mantenimiento (`/mantenimiento`) y a su perfil (`/perfil`).
+- Ver tareas de mantenimiento activas o asignadas a él.
+- Reclamar tareas de mantenimiento disponibles.
+- Liberar o finalizar las tareas que tiene asignadas.
+- Crear y comentar tickets de soporte propios.
+- No tiene acceso al dashboard general, listado de inmuebles, tareas generales ni administración.
+
 ---
 
 # 4. Inmuebles
@@ -316,6 +329,18 @@ El MVP tendrá inicialmente las siguientes pantallas:
 10. **Inmuebles archivados**
     - Solo administrador.
     - Consultar y restaurar.
+
+11. **Mantenimiento** (`/mantenimiento`)
+    - Listado de tareas operativas de mantenimiento (cursor pagination).
+    - Creación de tareas de mantenimiento asociadas a inmueble y contacto (`ADMIN`, `ASESOR`).
+    - Reclamo, desreclamo y finalización de tareas de campo (`MANTENIMIENTO`, `ADMIN`).
+
+12. **Soporte interno** (`/soporte`)
+    - Sistema de tickets para reportar incidencias del sistema.
+    - Creación por cualquier usuario autenticado.
+    - Seguimiento cronológico de mensajes.
+    - Gestión de estados y prioridades por el administrador.
+    - Notificaciones automáticas a Telegram (opcional).
 
 ---
 

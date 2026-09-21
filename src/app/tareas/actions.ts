@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/dal";
+import { requirePermission } from "@/lib/dal";
 import { registrarActividad, withTransaction } from "@/lib/audit";
 import { z } from "zod";
 
@@ -102,7 +102,7 @@ export async function crearTarea(
   _prev: TareaFormState,
   formData: FormData
 ): Promise<TareaFormState> {
-  const user = await requireAuth();
+  const user = await requirePermission("TAREAS_GENERALES_MANAGE");
 
   const fechaRaw = String(formData.get("fechaLimite") ?? "").trim();
   const parsed = crearSchema.safeParse({
@@ -193,7 +193,7 @@ export async function reclamarTarea(
   _prev: TareaAccionState,
   formData: FormData
 ): Promise<TareaAccionState> {
-  const user = await requireAuth();
+  const user = await requirePermission("TAREAS_GENERALES_MANAGE");
   const id = String(formData.get("id") ?? "");
   if (!id) return { error: "ID inválido" };
 
@@ -233,7 +233,7 @@ export async function liberarTarea(
   _prev: TareaAccionState,
   formData: FormData
 ): Promise<TareaAccionState> {
-  const user = await requireAuth();
+  const user = await requirePermission("TAREAS_GENERALES_MANAGE");
   const id = String(formData.get("id") ?? "");
   if (!id) return { error: "ID inválido" };
 
@@ -252,10 +252,17 @@ export async function liberarTarea(
 
   try {
     await withTransaction(async (tx) => {
-      await tx.tarea.update({
-        where: { id },
+      const result = await tx.tarea.updateMany({
+        where: {
+          id,
+          estado: "EN_PROGRESO",
+          ...(user.role === "ADMIN" ? {} : { assignedToId: user.id }),
+        },
         data: { estado: "SIN_ASIGNAR", assignedToId: null },
       });
+      if (result.count === 0) {
+        throw new Error("CONFLICT");
+      }
       await registrarActividad({
         tx,
         tipo: "TAREA_LIBERADA",
@@ -266,7 +273,10 @@ export async function liberarTarea(
         tareaId: id,
       });
     });
-  } catch {
+  } catch (e) {
+    if (e instanceof Error && e.message === "CONFLICT") {
+      return { error: "No se pudo liberar: el estado cambió" };
+    }
     return { error: "No se pudo liberar la tarea" };
   }
 
@@ -280,7 +290,7 @@ export async function completarTarea(
   _prev: TareaAccionState,
   formData: FormData
 ): Promise<TareaAccionState> {
-  const user = await requireAuth();
+  const user = await requirePermission("TAREAS_GENERALES_MANAGE");
   const id = String(formData.get("id") ?? "");
   if (!id) return { error: "ID inválido" };
 
@@ -299,10 +309,17 @@ export async function completarTarea(
 
   try {
     await withTransaction(async (tx) => {
-      await tx.tarea.update({
-        where: { id },
+      const result = await tx.tarea.updateMany({
+        where: {
+          id,
+          estado: "EN_PROGRESO",
+          ...(user.role === "ADMIN" ? {} : { assignedToId: user.id }),
+        },
         data: { estado: "COMPLETADA", completedAt: new Date() },
       });
+      if (result.count === 0) {
+        throw new Error("CONFLICT");
+      }
       await registrarActividad({
         tx,
         tipo: "TAREA_COMPLETADA",
@@ -313,7 +330,10 @@ export async function completarTarea(
         tareaId: id,
       });
     });
-  } catch {
+  } catch (e) {
+    if (e instanceof Error && e.message === "CONFLICT") {
+      return { error: "No se pudo completar: el estado cambió" };
+    }
     return { error: "No se pudo completar la tarea" };
   }
 

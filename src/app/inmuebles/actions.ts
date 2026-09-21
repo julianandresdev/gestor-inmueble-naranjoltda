@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { requireAuth, requireAdmin } from "@/lib/dal";
+import { requireAdmin, requirePermission } from "@/lib/dal";
 import { registrarActividad, withTransaction } from "@/lib/audit";
 import { z } from "zod";
 
@@ -102,7 +102,7 @@ export async function crearInmueble(
   _prev: InmuebleFormState,
   formData: FormData
 ): Promise<InmuebleFormState> {
-  const user = await requireAuth();
+  const user = await requirePermission("INMUEBLES_MANAGE");
 
   const parsed = createSchema.safeParse(toStrings(formData));
 
@@ -160,7 +160,7 @@ export async function editarInmueble(
   _prev: InmuebleFormState,
   formData: FormData
 ): Promise<InmuebleFormState> {
-  const user = await requireAuth();
+  const user = await requirePermission("INMUEBLES_MANAGE");
 
   const existente = await prisma.inmueble.findUnique({
     where: { id },
