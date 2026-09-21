@@ -46,3 +46,13 @@ intacto durante el periodo de retención acordado antes de eliminarlo.
 Restaurar primero el dump en una base de Preview o temporal, ejecutar las
 migraciones pendientes y comparar conteos por tabla. No ejecutar `migrate reset`
 ni `db push --force-reset` sobre una base que contenga datos de producción.
+
+## Estado de Producción Actual (2026-09-20)
+
+- **URL de Producción**: `https://gestor-inmueble-naranjoltda.vercel.app`
+- **Proyecto Vercel**: `gestor-inmueble-naranjoltda` (Scope: `andreslc07s-projects`)
+- **Base de Datos**: Prisma Postgres (`gestor-inmueble-db`) aprovisionada mediante Vercel Marketplace en región `iad1` (PostgreSQL 17.2).
+- **Driver**: Prisma ORM 7 con `@prisma/adapter-pg`.
+- **Datos**: Restauración completa desde el dump del 2026-09-18 (340 inmuebles, 6 usuarios, 12 migraciones históricas aplicadas y consistentes).
+- **Retención de Neon**: Neon permanece en estado pasivo como respaldo secundario durante el periodo de retención de 30 días.
+

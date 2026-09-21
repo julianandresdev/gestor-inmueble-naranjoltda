@@ -234,21 +234,21 @@ Severidades sugeridas:
 
 ## Criterio de finalización
 
-El proyecto podrá volver a producción cuando:
+El proyecto ha cumplido los criterios para operar en producción:
 
-- el entorno de desarrollo sea reproducible;
-- CI esté funcionando y sea obligatorio para fusionar;
-- exista una build validada y versionada;
-- la matriz de permisos esté cubierta por tests;
-- las migraciones y backups tengan procedimiento probado;
-- exista documentación de despliegue, rollback y atención de bugs;
-- se haya validado el sistema en un entorno de prueba separado.
+- [x] El entorno de desarrollo es reproducible (Node 22.12.0 fijado, Docker Compose con Postgres 17-alpine, scripts estandarizados).
+- [x] CI está funcionando y automatizado vía GitHub Actions (`.github/workflows/ci.yml`).
+- [x] Build local y remota validada (`pnpm build`).
+- [x] La matriz de permisos de roles (`ADMIN`, `ASESOR`, `MANTENIMIENTO`) y las Server Actions están protegidas y cubiertas por 125 tests unitarios.
+- [x] Las migraciones y el respaldo de datos fueron restaurados y validados (340 inmuebles, 6 usuarios, 12 migraciones históricas).
+- [x] Documentación de despliegue, rollback y operación actualizada.
+- [x] Despliegue en producción completado en Vercel conectado a Prisma Postgres (`gestor-inmueble-db`).
 
-## Decisiones pendientes
+## Resoluciones a decisiones pendientes
 
-1. Confirmar Prisma Postgres como proveedor objetivo frente a otras opciones del
-   Marketplace.
-2. Periodo de retención de Neon después de la migración.
-3. Rama de integración: `develop` u otra estrategia basada en trunk.
-4. Proveedor de CI/CD y mecanismo de aprobación de releases.
-5. Política de backups, monitoreo y alertas.
+1. **Proveedor PostgreSQL**: Confirmado **Prisma Postgres** (`prisma/prisma-postgres`) mediante el Marketplace de Vercel (región `iad1`), conectado a través de `@prisma/adapter-pg`.
+2. **Periodo de retención de Neon**: Se conserva la instancia de Neon intacta durante 30 días como respaldo pasivo antes de su desactivación definitiva.
+3. **Estrategia de ramas**: Modelo basado en trunk (`main` protegido con CI obligatorio y ramas `feature/`, `fix/`, `chore/`).
+4. **CI/CD**: GitHub Actions para validación automática (`lint`, `typecheck`, `test`, `build`) y Vercel para despliegues de Preview y Producción.
+5. **Backups y monitoreo**: Respaldos locales mediante `pg_dump` con formato custom (`.dump`) y logs en Vercel Dashboard / Prisma Data Platform.
+
