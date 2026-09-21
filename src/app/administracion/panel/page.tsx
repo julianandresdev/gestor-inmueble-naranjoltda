@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { requireAdmin } from "@/lib/dal";
 import { getAdminPanelData, type PeriodoFiltro } from "@/lib/dal-admin-panel";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +42,8 @@ function formatearFechaCorta(d: Date | string): string {
 }
 
 export default async function AdminPanelPage({ searchParams }: PageProps) {
+  await requireAdmin();
+
   const params = await searchParams;
   const rawPeriodo = params.periodo;
   const periodo: PeriodoFiltro =

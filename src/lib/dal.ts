@@ -89,6 +89,9 @@ export const requireAuth = cache(async () => {
 export const requirePermission = cache(async (permission: Permission) => {
   const user = await requireAuth();
   if (!hasPermission(user.role, permission)) {
+    console.warn(
+      `[seguridad] Intento de acceso no autorizado. Usuario: ${user.username} (${user.role}), Permiso requerido: ${permission}`
+    );
     redirect(unauthorizedPath(user.role));
   }
   return user;
