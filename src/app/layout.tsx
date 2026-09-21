@@ -2,6 +2,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import type { Metadata } from "next";
 import Image from "next/image";
+import type { ReactNode } from "react";
 import { Toaster } from "sonner";
 import "./globals.css";
 import { AppNav } from "@/components/app-nav";
@@ -11,7 +12,7 @@ export const metadata: Metadata = {
   description: "Sistema interno de gestión de inmuebles, seguimiento y tareas.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="es" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
