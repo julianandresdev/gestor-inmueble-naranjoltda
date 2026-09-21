@@ -13,16 +13,22 @@ describe.skipIf(!hasDb)("Inmutabilidad Capa 3: PostgreSQL Triggers en Base de Da
   let testUserId: string;
 
   beforeAll(async () => {
-    const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
-    rawClient = new PrismaClient({ adapter });
+    try {
+      const adapter = new PrismaPg({
+        connectionString: (process.env.POSTGRES_URL || process.env.DATABASE_URL)!,
+      });
+      rawClient = new PrismaClient({ adapter });
 
-    // Buscar o crear usuario de prueba
-    const user = await rawClient.usuario.findFirst({
-      where: { estado: "ACTIVO" },
-      select: { id: true },
-    });
-    if (user) {
-      testUserId = user.id;
+      // Buscar o crear usuario de prueba
+      const user = await rawClient.usuario.findFirst({
+        where: { estado: "ACTIVO" },
+        select: { id: true },
+      });
+      if (user) {
+        testUserId = user.id;
+      }
+    } catch {
+      // Ignorar si la BD no está disponible
     }
   });
 

@@ -24,7 +24,7 @@ export async function AppNav() {
         <Link href={isMantenimiento ? "/mantenimiento" : "/dashboard"} className="flex shrink-0 items-center gap-2">
           <Image src="/logo.png" alt="Inmobiliaria Naranjo LTDA." width={32} height={32} className="h-8 w-auto" priority />
         </Link>
-        <nav className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto text-sm">
+        <nav className="no-scrollbar flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto py-1 text-sm [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {canViewDashboard && (
             <NavLink href="/dashboard" exact>
               Inicio
@@ -70,7 +70,10 @@ export async function AppNav() {
           </NavLink>
         </nav>
         <div className="flex shrink-0 items-center gap-3">
-          <span className="hidden text-xs text-muted-foreground sm:inline">
+          <span
+            className="hidden max-w-[140px] truncate text-xs text-muted-foreground sm:inline md:max-w-[200px] lg:max-w-[260px]"
+            title={`${user.name} · ${user.role}`}
+          >
             {user.name} · {user.role}
           </span>
           <ThemeToggle />
