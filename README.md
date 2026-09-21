@@ -1,8 +1,9 @@
-# Gestion Inmueble Naranjo
+# Gestion Inmueble Naranjo · `v1.2.1`
 
-Aplicación web interna para la gestión de inmuebles, seguimiento y tareas de
-Inmobiliaria Naranjo LTDA. Reemplaza progresivamente el manejo en Excel por una
-plataforma centralizada con trazabilidad de acciones.
+Aplicación web interna para la gestión integral de inmuebles, seguimiento operativo,
+supervisión y tareas de **Inmobiliaria Naranjo LTDA.** Reemplaza el manejo en hojas
+de cálculo por una plataforma centralizada con auditoría inmutable, presencia en vivo,
+control de acceso por roles y métricas en tiempo real.
 
 Incluye un sistema de **tickets de soporte** con notificaciones automáticas a
 **Telegram** para que el equipo reciba avisos en tiempo real cuando se reportan
@@ -11,11 +12,13 @@ incidencias o cambia el estado de un ticket.
 ## Stack
 
 - **Next.js 16** (App Router, RSC) + **React 19** + **TypeScript** estricto
-- **Tailwind CSS v4** + **shadcn/ui** (base sobre `@base-ui/react`)
-- **Prisma 7** + **PostgreSQL** (Docker) con driver adapter `pg`
-- **Auth.js v5** (NextAuth) — credenciales, JWT, roles `ADMIN` / `ASESOR`
+- **Tailwind CSS v4** + **shadcn/ui** (base sobre `@base-ui/react`) + **Modo Oscuro** nativo
+- **Prisma 7** + **PostgreSQL** con driver adapter `@prisma/adapter-pg` y pooler serverless
+- **Auth.js v5** (NextAuth) — credenciales, JWT, roles `ADMIN` / `ASESOR` / `MANTENIMIENTO`
+- **Auditoría Inmutable en 3 Capas** — Protección aplicativa, extensión Prisma y triggers SQL
+- **Presencia en Tiempo Real** — Latido periódico de 60 segundos por sesión activa
 - **Zod** + **React Hook Form** para validación cliente/servidor
-- **Vitest** para pruebas unitarias
+- **Vitest** para pruebas unitarias (146 tests automatizados)
 - **Telegram Bot API** para notificaciones de tickets de soporte
 
 ## Estructura
@@ -25,6 +28,7 @@ incidencias o cambia el estado de un ticket.
 ├── docker-compose.yml          # PostgreSQL listo para usar
 ├── Dockerfile                  # Imagen standalone de producción
 ├── .github/workflows/ci.yml    # CI para PR y main
+├── CHANGELOG.md                # Historial formal de versiones (Keep a Changelog)
 ├── docs/                       # Documentación funcional y técnica
 │   ├── REQUIREMENTS.md
 │   ├── STACK.md
@@ -32,32 +36,37 @@ incidencias o cambia el estado de un ticket.
 │   └── DEPLOY-VERCEL.md
 ├── prisma/
 │   ├── schema.prisma           # Modelos, enums, migraciones aplicadas
-│   └── migrations/             # Migraciones de Prisma
+│   └── migrations/             # Migraciones versionadas de Prisma
 ├── scripts/
 │   ├── seed-admin.ts           # Crea el administrador inicial
+│   ├── seed-asesor.ts          # Crea el asesor de desarrollo
 │   ├── seed-inmuebles.ts       # Carga datos de ejemplo en inmuebles
 │   └── import-inmuebles-xlsx.ts # Importa el listado Excel a la BD
-├── tests/                      # Pruebas unitarias (Vitest)
+├── tests/                      # Pruebas unitarias y de inmutabilidad (Vitest)
 ├── src/
 │   ├── app/                    # Rutas, layouts, server actions, server components
 │   │   ├── actions.ts          # Acción de login
+│   │   ├── actions-presencia.ts# Heartbeat periódico de presencia
 │   │   ├── login/              # Página pública de login
-│   │   ├── dashboard/          # Resumen, métricas, actividad
+│   │   ├── dashboard/          # Resumen operativo inicial (Inicio)
 │   │   ├── inmuebles/          # CRUD inmuebles, archivado, notas
 │   │   ├── tareas/             # CRUD tareas, reclamo, liberación
+│   │   ├── mantenimiento/      # Solicitudes y órdenes de mantenimiento
 │   │   ├── soporte/            # Tickets de soporte + conversación
-│   │   ├── administracion/     # Panel de métricas, usuarios y archivados
+│   │   ├── administracion/     # Panel de métricas (/panel), usuarios y archivados
 │   │   ├── api/cron/retencion/ # Endpoint de purga y retención periódica
-│   │   ├── terminos/           # Términos y condiciones (público)
-│   │   ├── privacidad/         # Política de privacidad (público)
-│   │   ├── layout.tsx          # Layout raíz, nav, footer, toaster, theme script
+│   │   ├── terminos/           # Términos y condiciones (público, Ley 1581)
+│   │   ├── privacidad/         # Política de privacidad (público, Habeas Data)
+│   │   ├── layout.tsx          # Layout raíz, nav, footer con VersionBadge
 │   │   ├── page.tsx            # Página inicial (redirect a /login o /dashboard)
-│   │   └── globals.css         # Tema, tokens OKLCH y modo oscuro
+│   │   └── globals.css         # Tema, tokens OKLCH, modo oscuro y .no-scrollbar
 │   ├── components/             # Componentes UI
 │   │   ├── ui/                 # shadcn (button, card, dialog, table, …)
-│   │   ├── app-nav.tsx         # Navegación principal
-│   │   ├── nav-link.tsx        # Enlace con indicador de sección activa
+│   │   ├── app-nav.tsx         # Cabecera con scroll horizontal fluido y nombres truncados
+│   │   ├── nav-link.tsx        # Enlace con indicador de sección activa (shrink-0)
 │   │   ├── theme-toggle.tsx    # Conmutador de modo claro/oscuro
+│   │   ├── version-badge.tsx   # Badge interactivo con modal de novedades y changelog
+│   │   ├── presence-heartbeat.tsx # Emisor de latido en segundo plano
 │   │   ├── login-form.tsx
 │   │   ├── logout-form.tsx
 │   │   ├── actividad-timeline.tsx
@@ -65,9 +74,13 @@ incidencias o cambia el estado de un ticket.
 │   │   ├── skeleton.tsx        # Skeleton base
 │   │   └── skeletons.tsx       # Skeletons específicos (tabla, card, KPI)
 │   ├── lib/                    # Lógica de servidor
-│   │   ├── prisma.ts           # Singleton de Prisma con driver pg
-│   │   ├── dal.ts              # requireAuth, requireAdmin, queries
-│   │   ├── audit.ts            # Registro de actividad en transacciones
+│   │   ├── prisma.ts           # Singleton Prisma con pooler POSTGRES_URL e inmutabilidad
+│   │   ├── version.ts          # Fuente única de verdad de la versión y changelog
+│   │   ├── dal.ts              # requireAuth, requireAdmin, queries base
+│   │   ├── dal-admin-panel.ts  # Métricas, KPIs y agregaciones de supervisión
+│   │   ├── audit.ts            # Registro y hashing de cambios en transacciones
+│   │   ├── permissions.ts      # Matriz de permisos RBAC
+│   │   ├── client-info.ts      # Detección de IP y User-Agent
 │   │   ├── tarea-utils.ts      # Helpers de tareas (esVencida, etiquetas)
 │   │   ├── soporte-utils.ts    # Labels y variantes de badge de tickets
 │   │   ├── telegram.ts         # Cliente server-only para Telegram Bot API
@@ -121,9 +134,11 @@ cp .env.example .env
 
 | Variable | Descripción |
 | --- | --- |
-| `DATABASE_URL` | URL de conexión PostgreSQL. |
-| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | Credenciales y nombre de la base consumidos por `docker-compose.yml`. La `DATABASE_URL` debe usar los mismos valores. |
+| `DATABASE_URL` | URL de conexión directa a PostgreSQL (utilizada para migraciones DDL de Prisma y desarrollo local). |
+| `POSTGRES_URL` | URL de conexión mediante pooler PgBouncer de Prisma (priorizada en producción serverless para evitar saturación de conexiones). |
+| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | Credenciales y nombre de la base consumidos por `docker-compose.yml`. La `DATABASE_URL` local debe usar los mismos valores. |
 | `AUTH_SECRET` | Secreto JWT de Auth.js. Genera uno con `openssl rand -base64 32`. |
+| `CRON_SECRET` | Token secreto Bearer para autorizar la ejecución programada de `/api/cron/retencion` desde Vercel Cron. |
 | `ADMIN_USERNAME` / `ADMIN_PASSWORD` / `ADMIN_NOMBRE` | Credenciales del admin inicial (se usan solo en el seed). |
 | `ASESOR_PASSWORD` | Contraseña del usuario asesor de desarrollo (se usa solo en el seed). `pnpm seed:asesor` falla si no está definida. |
 | `NODE_ENV` | `development` \| `production`. |
@@ -186,7 +201,7 @@ Login con las credenciales de `ADMIN_USERNAME` / `ADMIN_PASSWORD`.
 Genera un build optimizado y lo sirve en el puerto `3000`:
 
 ```bash
-pnpm build       # genera .next/; no ejecuta migraciones
+pnpm build       # compila la aplicación y ejecuta migraciones pendientes
 pnpm db:migrate:deploy # aplica migraciones pendientes de forma explícita
 pnpm start       # sirve la build de producción
 ```
@@ -202,12 +217,15 @@ añade `allowedDevOrigins` en `next.config.ts`
 | Script | Uso |
 | --- | --- |
 | `pnpm dev` | Servidor de desarrollo con hot-reload. |
-| `pnpm build` | Compila la aplicación sin modificar la base de datos. |
-| `pnpm build:production` | Aplica migraciones y compila; usar solo contra la base objetivo. |
+| `pnpm build` | Ejecuta migraciones, genera cliente Prisma y compila Next.js. |
+| `pnpm build:production` | Aplica migraciones y compila para producción. |
 | `pnpm start` | Sirve la build de producción. |
+| `pnpm release:patch` | Incrementa versión PATCH en `package.json`, crea commit, tag git y hace push. |
+| `pnpm release:minor` | Incrementa versión MINOR en `package.json`, crea commit, tag git y hace push. |
+| `pnpm release:major` | Incrementa versión MAJOR en `package.json`, crea commit, tag git y hace push. |
 | `pnpm lint` | ESLint. |
 | `pnpm typecheck` | TypeScript en modo estricto. |
-| `pnpm test` / `pnpm test:watch` | Pruebas unitarias (Vitest). |
+| `pnpm test` / `pnpm test:watch` | Pruebas unitarias y de inmutabilidad (Vitest). |
 | `pnpm prisma:generate` | Regenera el cliente de Prisma. |
 | `pnpm prisma:validate` | Valida el schema Prisma. |
 | `pnpm prisma:migrate` | Crea y aplica migraciones durante el desarrollo. |
@@ -321,3 +339,41 @@ un bot configurado.
   (`await`) tras el commit de Prisma, con un catch que loguea y continúa. No
   hay colas ni reintentos: si Telegram falla, el aviso se pierde, pero la
   operación principal siempre completa.
+
+## Panel de Administración y Supervisión (`/administracion/panel`)
+
+Acceso exclusivo para el rol `ADMIN`. Centraliza:
+- **KPIs Operativos y de Cartera**: Total de inmuebles activos, distribución por destinación (Vivienda/Comercio), tareas pendientes y vencidas, mantenimientos abiertos y tickets de soporte sin resolver.
+- **Actividad del Equipo**: Métricas agregadas por usuario, ranking de participación y distribución de actividad por módulo operativo.
+- **Sesiones y Presencia en Vivo**: Identificación de usuarios conectados actualmente, última ruta navegada y tiempo transcurrido desde el último latido.
+- **Alertas de Salud**: Detección de intentos fallidos sospechosos de login, tareas vencidas y mantenimientos estancados.
+- **Filtros Temporales**: Consultas consolidadas por `Hoy`, `Últimos 7 días` o `Últimos 30 días`.
+
+## Presencia en Tiempo Real
+
+- Componente cliente [`PresenceHeartbeat`](src/components/presence-heartbeat.tsx) que envía un pulso HTTP periódico cada 60 segundos mientras el usuario permanece autenticado.
+- Registro en base de datos en la tabla `sesiones_presencia` con IP y User-Agent capturados.
+- Si una sesión no emite pulsos durante más de 3 minutos, se considera desconectada.
+- Las sesiones inactivas por más de 24 horas se depuran automáticamente mediante cron.
+
+## Auditoría Inmutable en Tres Capas
+
+La integridad de las tablas `actividad` y `registro_accesos` está protegida mediante un esquema de inmutabilidad estricta (*append-only*):
+1. **Capa Aplicativa**: El DAL no provee funciones ni server actions para modificar o borrar eventos históricos.
+2. **Capa ORM Prisma**: Extensión en [`src/lib/prisma.ts`](src/lib/prisma.ts) que bloquea `update`, `updateMany`, `upsert`, `delete` y `deleteMany` lanzando `InmutableAuditError`.
+3. **Capa Motor SQL (PostgreSQL Triggers)**: Disparadores en base de datos (`trg_inmutable_actividad` y `trg_inmutable_registro_accesos`) que cancelan cualquier sentencia `UPDATE` o `DELETE` directa con error `SQLSTATE '55000'`.
+- **Depuración Autorizada**: El endpoint seguro `/api/cron/retencion` ejecuta la purga de registros que excedan la política de retención reglamentaria (12 meses por defecto) bajo el contexto seguro `runWithRetentionPurge`.
+
+## Sistema de Versiones y Novedades
+
+- Adhesión estricta a **SemVer** (`MAJOR.MINOR.PATCH`).
+- Fuente de verdad unificada en [`src/lib/version.ts`](src/lib/version.ts) y [`package.json`](package.json).
+- Documentación formal de releases en [`CHANGELOG.md`](CHANGELOG.md) bajo el formato *Keep a Changelog*.
+- Componente interactivo [`VersionBadge`](src/components/version-badge.tsx) en el pie de página global, con modal accesible de historial de versiones y novedades para los colaboradores.
+- Automatización de publicaciones mediante scripts `pnpm release:patch`, `pnpm release:minor` y `pnpm release:major`.
+
+## Políticas Legales y Cumplimiento Normativo
+
+- **Términos y Condiciones (`/terminos`)**: Regula el uso interno del aplicativo, la confidencialidad de datos comerciales, el secreto profesional y el marco legal colombiano (Ley 1273 de 2009 de Delitos Informáticos).
+- **Política de Privacidad (`/privacidad`)**: Cumplimiento de la Ley Estatutaria 1581 de 2012 de Protección de Datos Personales (Habeas Data), garantías de enmascaramiento de información reservada y derechos de los titulares.
+

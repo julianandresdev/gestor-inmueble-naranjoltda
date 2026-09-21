@@ -4,8 +4,9 @@
 
 - `main` contiene el código listo para producción.
 - Las ramas de trabajo usan `feature/`, `fix/`, `chore/` o `codex/`.
-- Cada cambio entra mediante pull request y debe pasar el workflow `CI`.
-- Los releases se etiquetan con SemVer, por ejemplo `v0.1.0`.
+- Cada cambio entra mediante pull request y debe pasar el workflow `CI` (typecheck, lint, test, build).
+- Los releases se etiquetan con **SemVer** estricto, por ejemplo `v1.2.1`.
+- La versión activa está centralizada en [`src/lib/version.ts`](../src/lib/version.ts), sincronizada con `package.json` y documentada en [`CHANGELOG.md`](../CHANGELOG.md).
 
 Un release debe indicar cambios funcionales, migraciones Prisma, variables
 nuevas, riesgos y rollback. No se deben subir secretos, dumps ni archivos
@@ -55,6 +56,34 @@ Las migraciones aplicadas no se editan ni se borran. Una corrección posterior s
 modela como otra migración. El rollback de aplicación debe poder ejecutarse con
 la base ya migrada; para cambios incompatibles se requiere una migración de
 transición (expandir, desplegar, contraer).
+
+## Publicación Automatizada de Releases
+
+El proyecto cuenta con scripts en `package.json` para gestionar incrementos de versión SemVer y etiquetado automático en Git:
+
+1. **Correcciones de Errores / Bug Fixes (`PATCH`)**:
+   ```bash
+   pnpm release:patch
+   ```
+   Incrementa la versión de `1.2.1` a `1.2.2`, genera el commit y el tag de Git, y empuja todo a GitHub.
+
+2. **Nuevas Funcionalidades Compatibles (`MINOR`)**:
+   ```bash
+   pnpm release:minor
+   ```
+   Incrementa la versión de `1.2.1` a `1.3.0`, genera el commit y el tag de Git, y empuja todo a GitHub.
+
+3. **Cambios Mayores o Incompatibles (`MAJOR`)**:
+   ```bash
+   pnpm release:major
+   ```
+   Incrementa la versión de `1.2.1` a `2.0.0`, genera el commit y el tag de Git, y empuja todo a GitHub.
+
+### Pasos previos a la ejecución del release:
+1. Actualizar [`src/lib/version.ts`](../src/lib/version.ts) agregando el bloque correspondiente en `APP_CHANGELOG` con sus hitos clave.
+2. Actualizar [`CHANGELOG.md`](../CHANGELOG.md) con la fecha y descripción de cambios.
+3. Ejecutar `pnpm typecheck && pnpm test && pnpm build` para asegurar compilación limpia.
+4. Ejecutar el script `pnpm release:*` deseado.
 
 ## Docker
 
