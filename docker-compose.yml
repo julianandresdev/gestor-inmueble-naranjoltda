@@ -1,12 +1,11 @@
 services:
   postgres:
-    image: postgres:alpine
-    container_name: gestor-postgres
+    image: postgres:16-alpine
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: gestor_inmueble
+      POSTGRES_DB: ${POSTGRES_DB:-gestor_inmueble}
     # Solo desarrollo: expone Postgres únicamente en loopback.
     # En producción elimina el bloque `ports` para no publicar el puerto.
     ports:
@@ -14,7 +13,7 @@ services:
     volumes:
       - gestor_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d gestor_inmueble"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 10

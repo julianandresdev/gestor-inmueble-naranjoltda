@@ -1,18 +1,10 @@
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import type { Metadata } from "next";
-import { Figtree } from "next/font/google";
 import Image from "next/image";
 import { Toaster } from "sonner";
 import "./globals.css";
 import { AppNav } from "@/components/app-nav";
-
-const figtree = Figtree({
-  variable: "--font-sans",
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800", "900"],
-  style: ["normal", "italic"],
-});
 
 export const metadata: Metadata = {
   title: "Gestion Inmobiliaria Naranjo",
@@ -21,10 +13,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="es"
-      className={`${figtree.variable} h-full antialiased`}
-    >
+    <html lang="es" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
         <AppNav />
         <div className="flex-1">{children}</div>

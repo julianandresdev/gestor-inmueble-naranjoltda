@@ -1,0 +1,11 @@
+node_modules
+.next
+coverage
+.git
+.github
+.env*
+!.env.example
+*.log
+backups
+docs/listado_llamadas.xlsx
+src/generated/prisma

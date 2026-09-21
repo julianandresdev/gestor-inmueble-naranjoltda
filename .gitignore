@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+/.pnpm-store/
 /.pnp
 .pnp.*
 .yarn/*
@@ -51,3 +52,6 @@ next-env.d.ts
 
 # XLSX
 docs/listado_llamadas.xlsx
+
+# local database backups
+/backups/

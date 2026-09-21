@@ -23,9 +23,13 @@ incidencias o cambia el estado de un ticket.
 ```
 .
 ├── docker-compose.yml          # PostgreSQL listo para usar
+├── Dockerfile                  # Imagen standalone de producción
+├── .github/workflows/ci.yml    # CI para PR y main
 ├── docs/                       # Documentación funcional y técnica
 │   ├── REQUIREMENTS.md
-│   └── STACK.md
+│   ├── STACK.md
+│   ├── OPERACION-Y-RELEASES.md
+│   └── DEPLOY-VERCEL.md
 ├── prisma/
 │   ├── schema.prisma           # Modelos, enums, migraciones aplicadas
 │   └── migrations/             # Migraciones de Prisma
@@ -81,6 +85,9 @@ incidencias o cambia el estado de un ticket.
 - (Opcional, para notificaciones de soporte) un bot de Telegram y el `chat_id`
   destino
 
+La versión recomendada es Node 22.12.0 (también declarada en `.nvmrc`) y pnpm
+10.15.0. Se debe usar la misma versión en local y CI.
+
 ## Arrancar PostgreSQL con Docker
 
 ```bash
@@ -110,11 +117,12 @@ cp .env.example .env
 | Variable | Descripción |
 | --- | --- |
 | `DATABASE_URL` | URL de conexión PostgreSQL. |
-| `POSTGRES_USER` / `POSTGRES_PASSWORD` | Credenciales consumidas por `docker-compose.yml`. La `DATABASE_URL` debe usar los mismos valores. |
+| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | Credenciales y nombre de la base consumidos por `docker-compose.yml`. La `DATABASE_URL` debe usar los mismos valores. |
 | `AUTH_SECRET` | Secreto JWT de Auth.js. Genera uno con `openssl rand -base64 32`. |
 | `ADMIN_USERNAME` / `ADMIN_PASSWORD` / `ADMIN_NOMBRE` | Credenciales del admin inicial (se usan solo en el seed). |
 | `ASESOR_PASSWORD` | Contraseña del usuario asesor de desarrollo (se usa solo en el seed). `pnpm seed:asesor` falla si no está definida. |
 | `NODE_ENV` | `development` \| `production`. |
+| `NEXT_PUBLIC_APP_URL` | URL pública usada para enlaces internos; obligatoria en producción. |
 | `TELEGRAM_BOT_TOKEN` | Token del bot de Telegram que envía las notificaciones (obtenido con `@BotFather`). Si se omite, los envíos se omiten silenciosamente. |
 | `TELEGRAM_CHAT_ID` | `chat_id` o ID de grupo al que se enviarán los avisos de tickets de soporte. |
 
@@ -131,7 +139,8 @@ cp .env.example .env
 ## Migraciones
 
 ```bash
-pnpm prisma:migrate     # Aplica migraciones pendientes (también prisma generate)
+pnpm prisma:migrate     # Crea/aplica migraciones durante el desarrollo
+pnpm db:migrate:deploy  # Aplica migraciones versionadas en un entorno objetivo
 pnpm prisma:studio      # UI para inspeccionar la base
 ```
 
@@ -172,12 +181,13 @@ Login con las credenciales de `ADMIN_USERNAME` / `ADMIN_PASSWORD`.
 Genera un build optimizado y lo sirve en el puerto `3000`:
 
 ```bash
-pnpm build       # genera .next/ a partir de .env (aplica NEXT_PUBLIC_*, etc.)
+pnpm build       # genera .next/; no ejecuta migraciones
+pnpm db:migrate:deploy # aplica migraciones pendientes de forma explícita
 pnpm start       # sirve la build de producción
 ```
 
 Útil para validar el comportamiento en un entorno idéntico al de despliegue
-(bundle optimizado, sin fast refresh, con `x-powered-by` de Next).
+(bundle optimizado y sin fast refresh).
 
 Para exponerlo en otra IP de tu LAN (p. ej. `http://192.168.1.10:3000`),
 añade `allowedDevOrigins` en `next.config.ts`
@@ -187,13 +197,17 @@ añade `allowedDevOrigins` en `next.config.ts`
 | Script | Uso |
 | --- | --- |
 | `pnpm dev` | Servidor de desarrollo con hot-reload. |
-| `pnpm build` | Compila la aplicación para producción. |
+| `pnpm build` | Compila la aplicación sin modificar la base de datos. |
+| `pnpm build:production` | Aplica migraciones y compila; usar solo contra la base objetivo. |
 | `pnpm start` | Sirve la build de producción. |
 | `pnpm lint` | ESLint. |
 | `pnpm typecheck` | TypeScript en modo estricto. |
 | `pnpm test` / `pnpm test:watch` | Pruebas unitarias (Vitest). |
 | `pnpm prisma:generate` | Regenera el cliente de Prisma. |
-| `pnpm prisma:migrate` | Aplica migraciones pendientes. |
+| `pnpm prisma:validate` | Valida el schema Prisma. |
+| `pnpm prisma:migrate` | Crea y aplica migraciones durante el desarrollo. |
+| `pnpm db:migrate:deploy` | Aplica migraciones versionadas en CI/producción. |
+| `pnpm env:check` | Verifica variables mínimas sin imprimir secretos. |
 | `pnpm prisma:studio` | Inspeccionar la base. |
 | `pnpm seed:admin` | Crea el usuario admin inicial. |
 | `pnpm seed:asesor` | Crea el usuario asesor de desarrollo. |
@@ -228,6 +242,10 @@ pnpm build      # Build de producción
 
 Ver [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md) y [docs/STACK.md](docs/STACK.md)
 para el detalle funcional y técnico.
+
+Para el flujo completo de operación, releases, backups y despliegue en Vercel,
+ver [docs/OPERACION-Y-RELEASES.md](docs/OPERACION-Y-RELEASES.md) y
+[docs/DEPLOY-VERCEL.md](docs/DEPLOY-VERCEL.md).
 
 ## Tickets de soporte y notificaciones a Telegram
 

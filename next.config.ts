@@ -16,6 +16,7 @@ const cspHeader = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   // Acceso al dev server desde el móvil vía IP de LAN.
   // '192.168.*.*' permite cualquier dispositivo de la subred 192.168.x.x
   // (robusto ante cambios de IP por DHCP). Ajusta si tu LAN usa otra subred.

@@ -1,0 +1,48 @@
+# Despliegue en Vercel
+
+## Configuración
+
+1. Importar el repositorio y seleccionar `pnpm` como gestor (Vercel detecta el
+   `packageManager` del `package.json`).
+2. Usar Node `22.x` y el comando de build `pnpm build`.
+3. Configurar `DATABASE_URL` con la cadena pooled/runtime del proveedor de
+   PostgreSQL y `AUTH_SECRET` con un secreto nuevo de producción.
+4. Configurar `NEXT_PUBLIC_APP_URL` con la URL HTTPS final. Añadir Telegram
+   únicamente si se desean notificaciones.
+5. Mantener Preview y Production con bases y secretos separados mientras se
+   valida la migración.
+
+Variables de producción mínimas:
+
+```text
+DATABASE_URL
+AUTH_SECRET
+NEXT_PUBLIC_APP_URL
+```
+
+Las variables de seed (`ADMIN_*`, `ASESOR_PASSWORD`) no son necesarias para
+servir la aplicación y no deben configurarse por costumbre en producción.
+
+## Orden de despliegue
+
+El build no cambia el esquema. Antes de promover una versión que incluye una
+migración:
+
+```bash
+DATABASE_URL="$DATABASE_URL_PROD_DIRECT" pnpm db:migrate:deploy
+pnpm build
+```
+
+En Vercel, el primer comando debe ejecutarse desde un entorno administrativo o
+un job de despliegue controlado con la cadena directa. No se recomienda ponerlo
+en cada build de Preview porque puede apuntar por error a la base equivocada.
+
+Después del deploy verificar login, lectura de inmuebles, creación de nota,
+reclamo/completado de tarea, mantenimiento, soporte y actividad. Mantener Neon
+intacto durante el periodo de retención acordado antes de eliminarlo.
+
+## Migración desde el dump
+
+Restaurar primero el dump en una base de Preview o temporal, ejecutar las
+migraciones pendientes y comparar conteos por tabla. No ejecutar `migrate reset`
+ni `db push --force-reset` sobre una base que contenga datos de producción.
