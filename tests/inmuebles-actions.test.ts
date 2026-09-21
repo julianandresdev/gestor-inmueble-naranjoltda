@@ -23,7 +23,7 @@ vi.mock("@/lib/dal", () => ({
   requirePermission: mockRequirePermission,
 }));
 vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }));
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
 vi.mock("next/navigation", () => ({
   redirect: vi.fn((u: string) => {
     throw new Error(`REDIRECT ${u}`);
@@ -52,8 +52,8 @@ beforeEach(() => {
 });
 
 describe("inmuebles/actions — archivarInmueble", () => {
-  it("ASESOR no puede archivar (requireAdmin redirige)", async () => {
-    mockRequireAdmin.mockImplementation(() => {
+  it("usuario sin permiso no puede archivar (requirePermission redirige)", async () => {
+    mockRequirePermission.mockImplementation(() => {
       throw new Error("FORBIDDEN");
     });
     const fd = new FormData();
@@ -62,7 +62,33 @@ describe("inmuebles/actions — archivarInmueble", () => {
     expect(mockPrisma.inmueble.update).not.toHaveBeenCalled();
   });
 
+  it("ASESOR archiva correctamente", async () => {
+    mockRequirePermission.mockResolvedValue(ASESOR);
+    mockPrisma.inmueble.findUnique.mockResolvedValue({
+      id: "i1",
+      estado: "ACTIVO",
+      noInm: "100",
+    });
+    mockPrisma.inmueble.update.mockResolvedValue({});
+
+    const fd = new FormData();
+    fd.set("id", "i1");
+    const res = await archivarInmueble({}, fd);
+
+    expect(res).toEqual({ ok: true });
+    expect(mockPrisma.inmueble.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "i1" },
+        data: expect.objectContaining({
+          estado: "ARCHIVADO",
+          updatedById: ASESOR.id,
+        }),
+      })
+    );
+  });
+
   it("ADMIN archiva correctamente", async () => {
+    mockRequirePermission.mockResolvedValue(ADMIN);
     mockPrisma.inmueble.findUnique.mockResolvedValue({
       id: "i1",
       estado: "ACTIVO",

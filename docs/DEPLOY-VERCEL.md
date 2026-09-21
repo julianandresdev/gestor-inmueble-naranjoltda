@@ -51,8 +51,18 @@ ni `db push --force-reset` sobre una base que contenga datos de producción.
 
 - **URL de Producción**: `https://gestor-inmueble-naranjoltda.vercel.app`
 - **Proyecto Vercel**: `gestor-inmueble-naranjoltda` (Scope: `andreslc07s-projects`)
+- **Región Serverless**: `iad1` (configurada vía `vercel.json` para máxima proximidad física a la base de datos).
 - **Base de Datos**: Prisma Postgres (`gestor-inmueble-db`) aprovisionada mediante Vercel Marketplace en región `iad1` (PostgreSQL 17.2).
 - **Driver**: Prisma ORM 7 con `@prisma/adapter-pg`.
 - **Datos**: Restauración completa desde el dump del 2026-09-18 (340 inmuebles, 6 usuarios, 12 migraciones históricas aplicadas y consistentes).
 - **Retención de Neon**: Neon permanece en estado pasivo como respaldo secundario durante el periodo de retención de 30 días.
+
+## Seguridad Perimetral: Vercel Edge Firewall (WAF)
+
+El proyecto cuenta con reglas de seguridad en el Edge activadas y publicadas mediante Vercel CLI (`scripts/setup-vercel-firewall.sh`):
+
+1. **Restricción Geográfica (Geo-Blocking)**: Acceso restringido exclusivamente a Colombia (`geo_country = 'CO'`). Peticiones de otros países reciben bloqueo HTTP 403 automático en el Edge.
+2. **Protección de Fuerza Bruta (Rate Limiting)**: Máximo 5 peticiones por minuto por dirección IP sobre los endpoints de autenticación (`/api/auth` y `/login`).
+3. **Protección contra Bots**: Desafío (Challenge) y bloqueo de bots automatizados no verificados por el sistema de Vercel.
+
 

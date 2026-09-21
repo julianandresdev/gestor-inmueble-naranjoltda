@@ -47,12 +47,16 @@ incidencias o cambia el estado de un ticket.
 │   │   ├── tareas/             # CRUD tareas, reclamo, liberación
 │   │   ├── soporte/            # Tickets de soporte + conversación
 │   │   ├── administracion/     # Usuarios (admin) y archivados
-│   │   ├── layout.tsx          # Layout raíz, nav, footer, toaster
+│   │   ├── terminos/           # Términos y condiciones (público)
+│   │   ├── privacidad/         # Política de privacidad (público)
+│   │   ├── layout.tsx          # Layout raíz, nav, footer, toaster, theme script
 │   │   ├── page.tsx            # Página inicial (redirect a /login o /dashboard)
-│   │   └── globals.css         # Tema y Figtree
+│   │   └── globals.css         # Tema, tokens OKLCH y modo oscuro
 │   ├── components/             # Componentes UI
 │   │   ├── ui/                 # shadcn (button, card, dialog, table, …)
 │   │   ├── app-nav.tsx         # Navegación principal
+│   │   ├── nav-link.tsx        # Enlace con indicador de sección activa
+│   │   ├── theme-toggle.tsx    # Conmutador de modo claro/oscuro
 │   │   ├── login-form.tsx
 │   │   ├── logout-form.tsx
 │   │   ├── actividad-timeline.tsx

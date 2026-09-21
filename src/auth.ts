@@ -158,6 +158,8 @@ export const authConfig: NextAuthConfig = {
       const path = request.nextUrl.pathname;
       const isLoggedIn = !!auth?.user;
 
+      if (path === "/terminos" || path === "/privacidad") return true;
+
       if (path === "/login") {
         if (isLoggedIn) return Response.redirect(new URL("/dashboard", request.url));
         return true;

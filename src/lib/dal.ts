@@ -1,5 +1,6 @@
 import "server-only";
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import { redirect } from "next/navigation";
 import {
   hasPermission,
@@ -191,6 +192,15 @@ function buildWhere(filtros: InmuebleFiltros): Prisma.InmuebleWhereInput {
   return where;
 }
 
+function getNoInmRelevance(noInm: string, q: string): number {
+  const target = noInm.trim().toLowerCase();
+  const search = q.trim().toLowerCase();
+  if (target === search) return 0; // Coincidencia exacta
+  if (target.startsWith(search)) return 1; // Empieza por el término buscado
+  if (target.includes(search)) return 2; // Contiene el término en el No. Inm
+  return 3; // Coincidencia en otros campos
+}
+
 export async function listInmuebles(
   filtros: InmuebleFiltros = {},
   options: PageOptions = {}
@@ -198,21 +208,73 @@ export async function listInmuebles(
   await requirePermission("INMUEBLES_VIEW");
   const take = resolveTake(options.take);
   const baseWhere = buildWhere(filtros);
-  const c = decodeCursor<{ noInm: string }>(options.cursor);
-  const where: Prisma.InmuebleWhereInput = {
-    ...baseWhere,
-    ...(c ? { noInm: { gt: c.noInm } } : {}),
-  };
+  const q = filtros.q?.trim();
 
-  const [rows, total] = await Promise.all([
-    prisma.inmueble.findMany({
-      where,
-      select: selectInmuebleListItem,
-      orderBy: [{ noInm: "asc" }, { id: "desc" }],
-      take: take + 1,
-    }),
-    prisma.inmueble.count({ where: baseWhere }),
-  ]);
+  let rows: InmuebleListItem[];
+  let total: number;
+
+  if (q) {
+    const whereNoInm: Prisma.InmuebleWhereInput = {
+      ...baseWhere,
+      noInm: { contains: q, mode: "insensitive" },
+    };
+
+    const [noInmMatches, count] = await Promise.all([
+      prisma.inmueble.findMany({
+        where: whereNoInm,
+        select: selectInmuebleListItem,
+        orderBy: [{ noInm: "asc" }, { id: "desc" }],
+        take: take + 1,
+      }),
+      prisma.inmueble.count({ where: baseWhere }),
+    ]);
+
+    total = count;
+
+    // Ordenar coincidencias de No. Inm por relevancia (exacta > prefijo > subcadena) y orden natural
+    noInmMatches.sort((a, b) => {
+      const relA = getNoInmRelevance(a.noInm, q);
+      const relB = getNoInmRelevance(b.noInm, q);
+      if (relA !== relB) return relA - relB;
+      return a.noInm.localeCompare(b.noInm, undefined, { numeric: true });
+    });
+
+    if (noInmMatches.length <= take) {
+      // Completar con coincidencias en otros campos (dirección, arrendatario, teléfono, etc.)
+      const remaining = take + 1 - noInmMatches.length;
+      const whereOthers: Prisma.InmuebleWhereInput = {
+        ...baseWhere,
+        NOT: { noInm: { contains: q, mode: "insensitive" } },
+      };
+      const otherMatches = await prisma.inmueble.findMany({
+        where: whereOthers,
+        select: selectInmuebleListItem,
+        orderBy: [{ noInm: "asc" }, { id: "desc" }],
+        take: remaining,
+      });
+      rows = [...noInmMatches, ...otherMatches];
+    } else {
+      rows = noInmMatches;
+    }
+  } else {
+    const c = decodeCursor<{ noInm: string }>(options.cursor);
+    const where: Prisma.InmuebleWhereInput = {
+      ...baseWhere,
+      ...(c ? { noInm: { gt: c.noInm } } : {}),
+    };
+
+    const [allRows, count] = await Promise.all([
+      prisma.inmueble.findMany({
+        where,
+        select: selectInmuebleListItem,
+        orderBy: [{ noInm: "asc" }, { id: "desc" }],
+        take: take + 1,
+      }),
+      prisma.inmueble.count({ where: baseWhere }),
+    ]);
+    rows = allRows;
+    total = count;
+  }
 
   const hasMore = rows.length > take;
   const items = hasMore ? rows.slice(0, take) : rows;
@@ -222,31 +284,39 @@ export async function listInmuebles(
   return { items, nextCursor, total };
 }
 
-export async function getOpcionesFiltros() {
+const getCachedOpcionesFiltros = unstable_cache(
+  async () => {
+    const [ciudades, barrios, tipos] = await Promise.all([
+      prisma.inmueble.findMany({
+        where: { estado: "ACTIVO" },
+        distinct: ["ciudad"],
+        select: { ciudad: true },
+      }),
+      prisma.inmueble.findMany({
+        where: { estado: "ACTIVO" },
+        distinct: ["barrio"],
+        select: { barrio: true },
+      }),
+      prisma.inmueble.findMany({
+        where: { estado: "ACTIVO" },
+        distinct: ["tipoInmueble"],
+        select: { tipoInmueble: true },
+      }),
+    ]);
+    return {
+      ciudades: ciudades.map((c) => c.ciudad).filter(Boolean) as string[],
+      barrios: barrios.map((b) => b.barrio).filter(Boolean) as string[],
+      tipos: tipos.map((t) => t.tipoInmueble).filter(Boolean) as string[],
+    };
+  },
+  ["opciones-filtros-inmuebles"],
+  { tags: ["inmuebles-filtros"], revalidate: 3600 }
+);
+
+export const getOpcionesFiltros = cache(async () => {
   await requirePermission("INMUEBLES_VIEW");
-  const [ciudades, barrios, tipos] = await Promise.all([
-    prisma.inmueble.findMany({
-      where: { estado: "ACTIVO" },
-      distinct: ["ciudad"],
-      select: { ciudad: true },
-    }),
-    prisma.inmueble.findMany({
-      where: { estado: "ACTIVO" },
-      distinct: ["barrio"],
-      select: { barrio: true },
-    }),
-    prisma.inmueble.findMany({
-      where: { estado: "ACTIVO" },
-      distinct: ["tipoInmueble"],
-      select: { tipoInmueble: true },
-    }),
-  ]);
-  return {
-    ciudades: ciudades.map((c) => c.ciudad).filter(Boolean) as string[],
-    barrios: barrios.map((b) => b.barrio).filter(Boolean) as string[],
-    tipos: tipos.map((t) => t.tipoInmueble).filter(Boolean) as string[],
-  };
-}
+  return getCachedOpcionesFiltros();
+});
 
 export type InmuebleDetalle = Awaited<
   ReturnType<typeof prisma.inmueble.findUnique>
@@ -863,7 +933,7 @@ export type DashboardData = {
   tareasPrioritarias: DashboardTareaItem[];
 };
 
-export async function getDashboardData(): Promise<DashboardData> {
+export const getDashboardData = cache(async (): Promise<DashboardData> => {
   await requirePermission("DASHBOARD_VIEW");
 
   const now = new Date();
@@ -874,6 +944,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     vencidas,
     urgentesPendientes,
     prioridades,
+    soporteKpis,
   ] = await Promise.all([
     prisma.inmueble.count({ where: { estado: "ACTIVO" } }),
     prisma.tarea.groupBy({
@@ -916,6 +987,7 @@ export async function getDashboardData(): Promise<DashboardData> {
         asignadaA: { select: { id: true, nombre: true } },
       },
     }),
+    getSoporteKpis(),
   ]);
 
   const conteo: Record<string, number> = {};
@@ -923,8 +995,6 @@ export async function getDashboardData(): Promise<DashboardData> {
     conteo[g.estado] = g._count._all;
   }
   const tareasActivas = Object.values(conteo).reduce((a, b) => a + b, 0);
-
-  const soporteKpis = await getSoporteKpis();
 
   return {
     kpis: {
@@ -939,7 +1009,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     },
     tareasPrioritarias: prioridades,
   };
-}
+});
 
 export type SoporteTicketListItem = {
   id: string;

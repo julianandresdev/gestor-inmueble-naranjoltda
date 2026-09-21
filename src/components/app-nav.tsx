@@ -3,6 +3,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { LogoutForm } from "@/components/logout-form";
 import { hasPermission } from "@/lib/permissions";
+import { NavLink } from "@/components/nav-link";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export async function AppNav() {
   const session = await auth();
@@ -22,76 +24,51 @@ export async function AppNav() {
         <Link href={isMantenimiento ? "/mantenimiento" : "/dashboard"} className="flex shrink-0 items-center gap-2">
           <Image src="/logo.png" alt="Naranjo Ltda." width={32} height={32} className="h-8 w-auto" priority />
         </Link>
-        <nav className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto text-sm">
-            {canViewDashboard && (
-              <Link
-                href="/dashboard"
-                className="rounded px-2 py-1 font-medium hover:bg-muted"
-              >
-                Dashboard
-              </Link>
-            )}
-            {canViewInmuebles && (
-              <Link
-                href="/inmuebles"
-                className="rounded px-2 py-1 hover:bg-muted"
-              >
-                Inmuebles
-              </Link>
-            )}
-            {canViewTareas && (
-              <Link
-                href="/tareas"
-                className="rounded px-2 py-1 hover:bg-muted"
-              >
-                Tareas
-              </Link>
-            )}
-            {canViewSoporte && (
-              <Link
-                href="/soporte"
-                className="rounded px-2 py-1 hover:bg-muted"
-              >
-                Soporte
-              </Link>
-            )}
-            {canViewMantenimiento && (
-              <Link
-                href="/mantenimiento"
-                className={`rounded px-2 py-1 hover:bg-muted${
-                  isMantenimiento ? " font-medium" : ""
-                }`}
-              >
-                Mantenimiento
-              </Link>
-            )}
-            {isAdmin && (
-              <Link
-                href="/administracion/archivados"
-                className="rounded px-2 py-1 hover:bg-muted"
-              >
-                Archivados
-              </Link>
-            )}
-            {isAdmin && (
-              <Link
-                href="/administracion/usuarios"
-                className="rounded px-2 py-1 hover:bg-muted"
-              >
-                Usuarios
-              </Link>
-            )}
-            <Link
-              href="/perfil"
-              className="rounded px-2 py-1 hover:bg-muted"
-            >
-              Perfil
-            </Link>
-          </nav>
+        <nav className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto text-sm">
+          {canViewDashboard && (
+            <NavLink href="/dashboard" exact>
+              Inicio
+            </NavLink>
+          )}
+          {canViewInmuebles && (
+            <NavLink href="/inmuebles">
+              Inmuebles
+            </NavLink>
+          )}
+          {canViewTareas && (
+            <NavLink href="/tareas">
+              Tareas
+            </NavLink>
+          )}
+          {canViewSoporte && (
+            <NavLink href="/soporte">
+              Soporte
+            </NavLink>
+          )}
+          {canViewMantenimiento && (
+            <NavLink href="/mantenimiento">
+              Mantenimiento
+            </NavLink>
+          )}
+          {isAdmin && (
+            <NavLink href="/administracion/archivados">
+              Archivados
+            </NavLink>
+          )}
+          {isAdmin && (
+            <NavLink href="/administracion/usuarios">
+              Usuarios
+            </NavLink>
+          )}
+          <NavLink href="/perfil">
+            Perfil
+          </NavLink>
+        </nav>
         <div className="flex shrink-0 items-center gap-3">
           <span className="hidden text-xs text-muted-foreground sm:inline">
             {user.name} · {user.role}
           </span>
+          <ThemeToggle />
           <LogoutForm />
         </div>
       </div>

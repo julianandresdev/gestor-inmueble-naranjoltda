@@ -1,16 +1,18 @@
-import "dotenv/config";
+import dotenv from "dotenv";
+dotenv.config({ path: ".env.local" });
+dotenv.config({ path: ".env" });
 import bcrypt from "bcryptjs";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 async function main() {
-  const username = process.env.ADMIN_USERNAME;
+  const username = process.env.ADMIN_USERNAME ?? "admin";
   const password = process.env.ADMIN_PASSWORD;
   const nombre = process.env.ADMIN_NOMBRE ?? "Administrador";
 
-  if (!username || !password) {
+  if (!password) {
     console.error(
-      "Faltan variables: se requieren ADMIN_USERNAME y ADMIN_PASSWORD."
+      "Falta variable: se requiere ADMIN_PASSWORD en .env o .env.local."
     );
     process.exit(1);
   }
@@ -36,7 +38,15 @@ async function main() {
   });
 
   if (existente) {
-    console.log(`El usuario "${username}" ya existe.`);
+    await prisma.usuario.update({
+      where: { username },
+      data: {
+        passwordHash,
+        estado: "ACTIVO",
+        nombre,
+      },
+    });
+    console.log(`El usuario "${username}" ya existía. Se actualizó su contraseña y estado a ACTIVO.`);
     await prisma.$disconnect();
     return;
   }

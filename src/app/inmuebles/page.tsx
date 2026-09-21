@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { listInmuebles, getOpcionesFiltros } from "@/lib/dal";
 import { InmueblesFiltros } from "./inmuebles-filtros";
+import { InmuebleTableRow } from "./inmueble-row";
 import {
   Table,
   TableBody,
@@ -82,7 +83,7 @@ export default async function InmueblesPage({
               </TableRow>
             )}
             {inmuebles.map((i) => (
-              <TableRow key={i.id}>
+              <InmuebleTableRow key={i.id} id={i.id}>
                 <TableCell className="font-mono">
                   <Link
                     href={`/inmuebles/${i.id}`}
@@ -115,7 +116,7 @@ export default async function InmueblesPage({
                     Ver
                   </Button>
                 </TableCell>
-              </TableRow>
+              </InmuebleTableRow>
             ))}
           </TableBody>
         </Table>

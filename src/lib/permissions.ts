@@ -59,6 +59,7 @@ export function unauthorizedPath(role: unknown): string {
 export function canAccessPath(role: unknown, path: string): boolean {
   if (path === "/perfil") return hasPermission(role, "PERFIL_VIEW");
   if (path === "/login" || path === "/inicio") return true;
+  if (path === "/terminos" || path === "/privacidad") return true;
   if (path === "/dashboard") return hasPermission(role, "DASHBOARD_VIEW");
   if (path.startsWith("/inmuebles")) return hasPermission(role, "INMUEBLES_VIEW");
   if (path.startsWith("/tareas")) return hasPermission(role, "TAREAS_GENERALES_VIEW");

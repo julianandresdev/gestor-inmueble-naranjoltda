@@ -1,4 +1,6 @@
-import "dotenv/config";
+import dotenv from "dotenv";
+dotenv.config({ path: ".env.local" });
+dotenv.config({ path: ".env" });
 import bcrypt from "bcryptjs";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
@@ -11,7 +13,7 @@ async function main() {
 
   const password = process.env.ASESOR_PASSWORD;
   if (!password) {
-    throw new Error("ASESOR_PASSWORD no está definida.");
+    throw new Error("ASESOR_PASSWORD no está definida en .env o .env.local.");
   }
 
   const prisma = new PrismaClient({
@@ -20,12 +22,20 @@ async function main() {
 
   try {
     const username = "asesor";
+    const passwordHash = await bcrypt.hash(password, 10);
     const existente = await prisma.usuario.findUnique({
       where: { username },
     });
 
     if (existente) {
-      console.log(`El usuario "${username}" ya existe.`);
+      await prisma.usuario.update({
+        where: { username },
+        data: {
+          passwordHash,
+          estado: "ACTIVO",
+        },
+      });
+      console.log(`El usuario "${username}" ya existía. Se actualizó su contraseña y estado a ACTIVO.`);
       return;
     }
 

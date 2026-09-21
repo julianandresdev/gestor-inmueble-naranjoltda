@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, requirePermission } from "@/lib/dal";
@@ -151,6 +151,7 @@ export async function crearInmueble(
 
   revalidatePath("/inmuebles");
   revalidatePath("/dashboard");
+  revalidateTag("inmuebles-filtros", { expire: 0 });
   if (inmuebleId) redirect(`/inmuebles/${inmuebleId}`);
   return { error: "No se pudo crear el inmueble" };
 }
@@ -207,6 +208,8 @@ export async function editarInmueble(
 
   revalidatePath(`/inmuebles/${id}`);
   revalidatePath("/dashboard");
+  revalidatePath("/inmuebles");
+  revalidateTag("inmuebles-filtros", { expire: 0 });
   redirect(`/inmuebles/${id}`);
 }
 
@@ -230,7 +233,7 @@ export async function archivarInmueble(
   _prev: ArchivarState,
   formData: FormData
 ): Promise<ArchivarState> {
-  const user = await requireAdmin();
+  const user = await requirePermission("INMUEBLES_MANAGE");
   const id = String(formData.get("id") ?? "");
   if (!id) return { error: "ID inválido" };
 
@@ -267,6 +270,7 @@ export async function archivarInmueble(
   revalidatePath("/administracion/archivados");
   revalidatePath("/dashboard");
   revalidatePath(`/inmuebles/${id}`);
+  revalidateTag("inmuebles-filtros", { expire: 0 });
   return { ok: true };
 }
 
@@ -311,5 +315,6 @@ export async function restaurarInmueble(
   revalidatePath("/administracion/archivados");
   revalidatePath("/dashboard");
   revalidatePath(`/inmuebles/${id}`);
+  revalidateTag("inmuebles-filtros", { expire: 0 });
   return { ok: true };
 }
