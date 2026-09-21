@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ACTIVIDAD_LABELS } from "@/lib/audit";
+import { APP_VERSION } from "@/lib/version";
 
 interface PageProps {
   searchParams: Promise<{
@@ -76,6 +77,9 @@ export default async function AdminPanelPage({ searchParams }: PageProps) {
             <Badge variant="outline" className="text-xs font-normal">
               Métricas y Auditoría
             </Badge>
+            <span className="font-mono text-xs font-semibold rounded-md border border-border/70 bg-muted/60 px-2 py-0.5 text-muted-foreground">
+              v{APP_VERSION}
+            </span>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             Monitoreo en vivo de actividad, auditoría de seguridad y salud operativa de la inmobiliaria.

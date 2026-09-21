@@ -9,6 +9,7 @@ import "./globals.css";
 import { AppNav } from "@/components/app-nav";
 import { auth } from "@/auth";
 import { PresenceHeartbeat } from "@/components/presence-heartbeat";
+import { VersionBadge } from "@/components/version-badge";
 
 export const metadata: Metadata = {
   title: "Gestion Inmueble Naranjo",
@@ -50,6 +51,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
               <span>Gestion Inmueble Naranjo</span>
             </div>
             <div className="flex items-center gap-4">
+              <VersionBadge />
               <Link href="/terminos" className="hover:underline">
                 Términos y condiciones
               </Link>
