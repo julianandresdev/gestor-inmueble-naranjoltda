@@ -13,6 +13,7 @@ Versioning](https://semver.org/lang/es/).
 - Filas de la tabla de inmuebles (`InmuebleTableRow`) totalmente clickeables con navegación directa al detalle.
 - Indicador visual destacado de sección activa en la barra de navegación (`NavLink`) con contraste oscuro, borde sutil y tipografía en negrilla.
 - Renombrado de sección y encabezados de "Dashboard" a "Inicio".
+- Ajuste del nombre oficial de la plataforma a **Gestión Inmueble Naranjo** y de la razón social a **Inmobiliaria Naranjo LTDA.** en metadatos, cabecera, login, pie de página y páginas legales.
 - Inclusión de páginas públicas de **Términos y Condiciones** (`/terminos`) y **Política de Privacidad y Tratamiento de Datos Personales** (`/privacidad`) bajo normatividad colombiana (Ley 1273 de 2009 y Ley 1581 de 2012).
 
 ### Seguridad, Firewall y Permisos

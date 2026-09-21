@@ -22,7 +22,7 @@ export async function AppNav() {
     <header className="w-full border-b bg-background">
       <div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4">
         <Link href={isMantenimiento ? "/mantenimiento" : "/dashboard"} className="flex shrink-0 items-center gap-2">
-          <Image src="/logo.png" alt="Naranjo Ltda." width={32} height={32} className="h-8 w-auto" priority />
+          <Image src="/logo.png" alt="Inmobiliaria Naranjo LTDA." width={32} height={32} className="h-8 w-auto" priority />
         </Link>
         <nav className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto text-sm">
           {canViewDashboard && (

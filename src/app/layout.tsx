@@ -9,7 +9,7 @@ import "./globals.css";
 import { AppNav } from "@/components/app-nav";
 
 export const metadata: Metadata = {
-  title: "Gestion Inmobiliaria Naranjo",
+  title: "Gestion Inmueble Naranjo",
   description: "Sistema interno de gestión de inmuebles, seguimiento y tareas.",
 };
 
@@ -38,12 +38,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             <div className="flex items-center gap-2">
               <Image
                 src="/logo.png"
-                alt="Naranjo Ltda."
+                alt="Inmobiliaria Naranjo LTDA."
                 width={20}
                 height={20}
                 className="h-5 w-auto"
               />
-              <span>Gestion Inmobiliaria Naranjo</span>
+              <span>Gestion Inmueble Naranjo</span>
             </div>
             <div className="flex items-center gap-4">
               <Link href="/terminos" className="hover:underline">

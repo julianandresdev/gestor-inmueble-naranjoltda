@@ -2,7 +2,7 @@
 # ==============================================================================
 # Script de Configuración del Web Application Firewall (WAF) en Vercel
 # Proyecto: gestor-inmueble-naranjoltda
-# Uso exclusivo interno: Inmobiliaria Naranjo Ltda
+# Uso exclusivo interno: Inmobiliaria Naranjo LTDA.
 # ==============================================================================
 
 set -euo pipefail

@@ -5,8 +5,8 @@ import { ArrowLeft } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export const metadata = {
-  title: "Política de Privacidad | Gestión Inmobiliaria Naranjo",
-  description: "Política de tratamiento de datos personales de Gestión Inmobiliaria Naranjo Ltda.",
+  title: "Política de Privacidad | Gestión Inmueble Naranjo",
+  description: "Política de tratamiento de datos personales de Inmobiliaria Naranjo LTDA.",
 };
 
 export default function PrivacidadPage() {
@@ -26,14 +26,14 @@ export default function PrivacidadPage() {
             Política de Privacidad y Tratamiento de Datos Personales
           </CardTitle>
           <CardDescription>
-            Gestión Inmobiliaria Naranjo Ltda. · Conforme a la Ley 1581 de 2012 y Decreto 1377 de 2013 (Colombia)
+            Inmobiliaria Naranjo LTDA. · Conforme a la Ley 1581 de 2012 y Decreto 1377 de 2013 (Colombia)
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6 text-sm leading-relaxed text-muted-foreground">
           <section className="space-y-2">
             <h2 className="text-base font-semibold text-foreground">1. Responsable del Tratamiento</h2>
             <p>
-              <strong>Gestión Inmobiliaria Naranjo Ltda.</strong>, sociedad legalmente constituida en la República de
+              <strong>Inmobiliaria Naranjo LTDA.</strong>, sociedad legalmente constituida en la República de
               Colombia, actúa como Responsable del Tratamiento de los datos personales almacenados y gestionados a través
               de este aplicativo interno.
             </p>
@@ -71,7 +71,7 @@ export default function PrivacidadPage() {
           <section className="space-y-2">
             <h2 className="text-base font-semibold text-foreground">4. Medidas de Seguridad y Protección</h2>
             <p>
-              Gestión Inmobiliaria Naranjo Ltda. implementa rigurosas medidas técnicas, humanas y administrativas para
+              Inmobiliaria Naranjo LTDA. implementa rigurosas medidas técnicas, humanas y administrativas para
               garantizar la seguridad de la información, previniendo su adulteración, pérdida, consulta, uso o acceso no
               autorizado o fraudulento:
             </p>
@@ -87,7 +87,7 @@ export default function PrivacidadPage() {
             <h2 className="text-base font-semibold text-foreground">5. Canales de Atención</h2>
             <p>
               Para consultas, solicitudes de actualización de datos personales o el ejercicio de derechos de Habeas Data,
-              los titulares pueden comunicarse con la administración de Gestión Inmobiliaria Naranjo Ltda. a través de los
+              los titulares pueden comunicarse con la administración de Inmobiliaria Naranjo LTDA. a través de los
               canales institucionales de atención al cliente.
             </p>
           </section>

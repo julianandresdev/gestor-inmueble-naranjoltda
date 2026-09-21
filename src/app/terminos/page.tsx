@@ -5,8 +5,8 @@ import { ArrowLeft } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export const metadata = {
-  title: "Términos y Condiciones | Gestión Inmobiliaria Naranjo",
-  description: "Términos y condiciones de uso del sistema interno de Gestión Inmobiliaria Naranjo Ltda.",
+  title: "Términos y Condiciones | Gestión Inmueble Naranjo",
+  description: "Términos y condiciones de uso del sistema interno de Inmobiliaria Naranjo LTDA.",
 };
 
 export default function TerminosPage() {
@@ -24,7 +24,7 @@ export default function TerminosPage() {
         <CardHeader>
           <CardTitle className="text-2xl font-bold">Términos y Condiciones de Uso</CardTitle>
           <CardDescription>
-            Gestión Inmobiliaria Naranjo Ltda. · Última actualización: Septiembre 2026
+            Inmobiliaria Naranjo LTDA. · Última actualización: Septiembre 2026
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6 text-sm leading-relaxed text-muted-foreground">
@@ -33,7 +33,7 @@ export default function TerminosPage() {
             <p>
               El presente sistema es una plataforma tecnológica de uso <strong>exclusivamente interno</strong>,
               destinada a los colaboradores, asesores y personal administrativo debidamente autorizado de{" "}
-              <strong>Gestión Inmobiliaria Naranjo Ltda.</strong> Su finalidad es la gestión operativa de inmuebles,
+              <strong>Inmobiliaria Naranjo LTDA.</strong> Su finalidad es la gestión operativa de inmuebles,
               contratos de arrendamiento, asignación de tareas internas, gestión de mantenimiento y soporte técnico.
             </p>
           </section>
@@ -88,7 +88,7 @@ export default function TerminosPage() {
             <h2 className="text-base font-semibold text-foreground">6. Contacto y Consultas</h2>
             <p>
               Para dudas sobre estos términos, restablecimiento de accesos o reporte de incidentes, comunícate con la
-              administración de Gestión Inmobiliaria Naranjo Ltda. a través del módulo interno de Soporte.
+              administración de Inmobiliaria Naranjo LTDA. a través del módulo interno de Soporte.
             </p>
           </section>
         </CardContent>

@@ -1,7 +1,7 @@
-# Gestion Inmobiliaria Naranjo
+# Gestion Inmueble Naranjo
 
-Aplicación web interna para la gestión de inmuebles, seguimiento y tareas de la
-inmobiliaria Naranjo Ltda. Reemplaza progresivamente el manejo en Excel por una
+Aplicación web interna para la gestión de inmuebles, seguimiento y tareas de
+Inmobiliaria Naranjo LTDA. Reemplaza progresivamente el manejo en Excel por una
 plataforma centralizada con trazabilidad de acciones.
 
 Incluye un sistema de **tickets de soporte** con notificaciones automáticas a

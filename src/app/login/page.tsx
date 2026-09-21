@@ -17,16 +17,16 @@ export default async function LoginPage() {
       <div className="flex flex-col items-center gap-3 text-center">
         <Image
           src="/logo.png"
-          alt="Naranjo Ltda."
+          alt="Inmobiliaria Naranjo LTDA."
           width={96}
           height={96}
           className="h-24 w-auto"
           priority
         />
         <h1 className="text-2xl font-semibold tracking-tight">
-          Gestion Inmobiliaria Naranjo
+          Gestion Inmueble Naranjo
         </h1>
-        <p className="text-sm text-muted-foreground">Naranjo Ltda.</p>
+        <p className="text-sm text-muted-foreground">Inmobiliaria Naranjo LTDA.</p>
       </div>
       <LoginForm />
       <div className="flex items-center gap-3 text-xs text-muted-foreground">
