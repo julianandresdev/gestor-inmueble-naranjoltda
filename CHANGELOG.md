@@ -5,6 +5,18 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/
 
 ---
 
+## [1.3.0] - 2026-09-29
+
+### Añadido
+- **Selección múltiple de inmuebles**: Checkboxes en cada fila de la tabla para seleccionar varios inmuebles a la vez, incluyendo un checkbox de "seleccionar todos los visibles" en el encabezado.
+- **Selección persistente entre búsquedas**: El estado de selección no se resetea al cambiar los filtros de búsqueda, permitiendo seleccionar inmuebles de distintas páginas o búsquedas.
+- **Barra flotante de acciones**: Aparece automáticamente en la parte inferior de la pantalla cuando hay ≥1 inmueble seleccionado, mostrando el contador de seleccionados y las acciones disponibles.
+- **Archivado masivo con confirmación**: Diálogo de confirmación antes de archivar que muestra la lista completa de inmuebles (No. Inm y dirección) que serán afectados.
+- **Auditoría granular del archivado masivo**: Cada inmueble archivado genera su propio registro de auditoría individual con el contexto `(archivado masivo)`.
+- Server Action `archivarInmueblesSeleccionados` con validación de permisos, límite de 200 inmuebles por operación y manejo de fallos individuales sin cancelar el lote.
+
+---
+
 ## [1.2.1] - 2026-09-21
 
 ### Corregido

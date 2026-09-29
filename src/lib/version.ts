@@ -6,9 +6,22 @@ export interface VersionRelease {
   highlights: string[];
 }
 
-export const APP_VERSION = "1.2.1";
+export const APP_VERSION = "1.3.0";
 
 export const APP_CHANGELOG: VersionRelease[] = [
+  {
+    version: "1.3.0",
+    date: "2026-09-29",
+    title: "Selección Múltiple y Archivado Masivo de Inmuebles",
+    type: "minor",
+    highlights: [
+      "Checkboxes en la tabla de inmuebles para seleccionar varios a la vez.",
+      "La selección persiste mientras el usuario filtra o busca otros inmuebles.",
+      "Barra flotante de acciones que aparece automáticamente al seleccionar ≥1 inmueble.",
+      "Archivado masivo de inmuebles seleccionados con diálogo de confirmación y lista detallada.",
+      "Registro de auditoría individual por cada inmueble archivado (contexto 'archivado masivo').",
+    ],
+  },
   {
     version: "1.2.1",
     date: "2026-09-21",

@@ -1,17 +1,8 @@
 import Link from "next/link";
 import { listInmuebles, getOpcionesFiltros } from "@/lib/dal";
 import { InmueblesFiltros } from "./inmuebles-filtros";
-import { InmuebleTableRow } from "./inmueble-row";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { InmueblesTablaSeleccion } from "./inmuebles-seleccion";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import type { Destinacion } from "@/generated/prisma/client";
 
 export default async function InmueblesPage({
@@ -60,67 +51,9 @@ export default async function InmueblesPage({
         tipos={opciones.tipos}
       />
 
-      <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>No. Inm</TableHead>
-              <TableHead>Dirección</TableHead>
-              <TableHead>Barrio</TableHead>
-              <TableHead>Ciudad</TableHead>
-              <TableHead>Tipo</TableHead>
-              <TableHead>Destinación</TableHead>
-              <TableHead>Arrendatario</TableHead>
-              <TableHead className="w-1 text-right">Acción</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {inmuebles.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground">
-                  No hay inmuebles que coincidan.
-                </TableCell>
-              </TableRow>
-            )}
-            {inmuebles.map((i) => (
-              <InmuebleTableRow key={i.id} id={i.id}>
-                <TableCell className="font-mono">
-                  <Link
-                    href={`/inmuebles/${i.id}`}
-                    className="font-medium hover:underline"
-                  >
-                    {i.noInm}
-                  </Link>
-                </TableCell>
-                <TableCell>{i.direccion ?? "—"}</TableCell>
-                <TableCell>{i.barrio ?? "—"}</TableCell>
-                <TableCell>{i.ciudad ?? "—"}</TableCell>
-                <TableCell>{i.tipoInmueble ?? "—"}</TableCell>
-                <TableCell>
-                  {i.destinacion ? (
-                    <Badge variant="secondary">
-                      {i.destinacion === "VIVIENDA" ? "Vivienda" : "Comercio"}
-                    </Badge>
-                  ) : (
-                    "—"
-                  )}
-                </TableCell>
-                <TableCell>{i.arrendatario ?? "—"}</TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    nativeButton={false}
-                    render={<Link href={`/inmuebles/${i.id}`} />}
-                  >
-                    Ver
-                  </Button>
-                </TableCell>
-              </InmuebleTableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      {/* La tabla con selección múltiple vive en un Client Component para
+          que el estado de selección persista entre búsquedas */}
+      <InmueblesTablaSeleccion inmuebles={inmuebles} />
     </main>
   );
 }

@@ -342,3 +342,90 @@ export async function restaurarInmueble(
   revalidateTag("inmuebles-filtros", { expire: 0 });
   return { ok: true };
 }
+
+export type ArchivarMasivoState = {
+  error?: string;
+  ok?: boolean;
+  archivados?: number;
+};
+
+/**
+ * Archiva múltiples inmuebles de forma masiva.
+ * Cada inmueble se archiva en su propia transacción con auditoría individual.
+ * Los inmuebles que ya estén archivados se omiten silenciosamente.
+ */
+export async function archivarInmueblesSeleccionados(
+  ids: string[]
+): Promise<ArchivarMasivoState> {
+  const user = await requirePermission("INMUEBLES_MANAGE");
+
+  if (!ids || ids.length === 0) {
+    return { error: "No se proporcionaron inmuebles para archivar" };
+  }
+
+  // Máximo 200 a la vez para evitar abusos
+  if (ids.length > 200) {
+    return { error: "No se pueden archivar más de 200 inmuebles a la vez" };
+  }
+
+  const idsValidos = ids.filter(
+    (id) => typeof id === "string" && id.trim().length > 0
+  );
+  if (idsValidos.length !== ids.length) {
+    return { error: "Lista de IDs inválida" };
+  }
+
+  const clientInfo = await getClientInfoSafe();
+  let archivados = 0;
+
+  for (const id of idsValidos) {
+    try {
+      const existente = await prisma.inmueble.findUnique({
+        where: { id },
+        select: { id: true, estado: true, noInm: true },
+      });
+
+      // Omitir silenciosamente los ya archivados o inexistentes
+      if (!existente || existente.estado !== "ACTIVO") continue;
+
+      await withTransaction(async (tx) => {
+        await tx.inmueble.update({
+          where: { id },
+          data: { estado: "ARCHIVADO", updatedById: user.id },
+        });
+        await registrarActividad({
+          tx,
+          tipo: "INMUEBLE_ARCHIVADO",
+          entidad: "INMUEBLE",
+          entidadId: id,
+          userId: user.id,
+          context: `No. Inm ${existente.noInm} (archivado masivo)`,
+          inmuebleId: id,
+          cambios: {
+            estado: { antes: "ACTIVO", despues: "ARCHIVADO" },
+          },
+          ip: clientInfo?.ip,
+          dispositivo: clientInfo?.resumenDispositivo,
+        });
+      });
+
+      archivados++;
+    } catch {
+      // Un fallo individual no cancela el resto
+    }
+  }
+
+  if (archivados === 0) {
+    return {
+      error:
+        "No se archivó ningún inmueble. Es posible que ya estén archivados.",
+    };
+  }
+
+  revalidatePath("/inmuebles");
+  revalidatePath("/administracion/archivados");
+  revalidatePath("/dashboard");
+  revalidateTag("inmuebles-filtros", { expire: 0 });
+
+  return { ok: true, archivados };
+}
